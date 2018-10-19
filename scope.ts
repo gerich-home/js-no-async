@@ -2,6 +2,7 @@ import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclarati
 import { Variables, Value, NumberValue, StringValue, BooleanValue, ObjectValue, ObjectFields, ObjectPrototypeValue, NullValue, UndefinedValue, InternalObjectFields } from './types';
 import { objectValue, stringValue, numberValue, booleanValue, undefinedValue, nullValue } from './factories';
 import { Engine } from './engine';
+import { NotImplementedError } from './notImplementedError';
 
 export class Scope {
     readonly variables: Variables = {};
@@ -11,6 +12,10 @@ export class Scope {
         private readonly parent: Scope | null = null
     ) {}
     
+    createChildScope(): Scope {
+        return new Scope(this.engine, this);
+    }
+
     evaluateStatements(statements: Statement[]): Value {
         for (const statement of statements) {
             const result = this.evaluateStatement(statement);
@@ -51,7 +56,7 @@ export class Scope {
             case 'ObjectExpression':
                 return this.evaluateObjectExpression(expression);
             case 'FunctionExpression':
-                return this.functionValue(expression);
+                return this.evaluateFunctionExpression(expression);
             case 'CallExpression':
                 return this.evaluateCallExpression(expression);
             case 'BinaryExpression':
@@ -126,30 +131,7 @@ export class Scope {
             throw new NotImplementedError('cannot call non-function');
         }
 
-        const functionDeclarationScope: Scope = callee.internalFields.scope;
-        const functionNode: FunctionDeclaration | FunctionExpression = callee.internalFields.function;
-        
-        
-        const newScope = new Scope(this.engine, functionDeclarationScope);
-
-        const argValues = expression.arguments.map(arg => this.evaluateExpression(arg));
-
-        let index = 0;
-        for(const parameter of functionNode.params) {
-            switch(parameter.type) {
-                case 'Identifier':
-                    const argumentValue = index < argValues.length ?
-                        argValues[index] :
-                        undefinedValue;
-                    newScope.assignIdentifier(argumentValue, parameter);
-                break;
-                default:
-                    throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported');
-            }
-            index++;
-        }
-
-        return newScope.evaluateStatements(functionNode.body.body);
+        return callee.internalFields.invoke(expression);
     }
 
     evaluateBinaryExpression(expression: BinaryExpression): Value {
@@ -189,6 +171,10 @@ export class Scope {
         }
 
         return objectValue(this.engine.rootPrototype, fields);
+    }
+
+    evaluateFunctionExpression(expression: FunctionExpression): Value {
+        return this.functionValue(expression);
     }
 
     evaluateMemberExpression(expression: MemberExpression): Value {
@@ -244,17 +230,10 @@ export class Scope {
 
         throw new NotImplementedError('unsupported left value type ' + to.type);
     }
-    
-    functionValue(functionNode: FunctionDeclaration | FunctionExpression): ObjectValue {
-        return objectValue(this.engine.functionPrototype, {}, {
-            function: functionNode,
-            scope: this
-        });
+
+    functionValue(statement: FunctionExpression | FunctionDeclaration) {
+        return this.engine.functionValue(this, statement);
     }
-}
-
-
-class NotImplementedError extends Error {
 }
 
 function toString(value: Value): string {
