@@ -1,12 +1,146 @@
 import { parse } from "@babel/parser";
-import { Expression, Statement, LVal } from "@babel/types";
+import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression } from "@babel/types";
+
+class Scope {
+    readonly variables: Variables = {};
+    
+    constructor(private readonly parent: Scope | null = null) {}
+    
+    evaluateStatement(statement: Statement): void {
+        switch(statement.type) {
+            case 'VariableDeclaration':
+                for(const declaration of statement.declarations) {
+                    const initialValue = declaration.init === null ?
+                        undefinedValue :
+                        this.evaluateExpression(declaration.init);
+
+                    this.assignValue(initialValue, declaration.id);
+                }
+                return;
+            case 'FunctionDeclaration':
+                if(statement.id === null) {
+                    throw new NotImplementedError('wrong function declaration');
+                } else {
+                    this.assignValue(this.functionValue(statement), statement.id);
+                }
+                return;
+            case "ExpressionStatement":
+                this.evaluateExpression(statement.expression);
+                return;
+            default:
+                throw new NotImplementedError('not supported statement type ' + statement.type);
+        }
+    }
+
+    evaluateExpression(expression: Expression | PatternLike): Value {
+        switch(expression.type) {
+            case 'NumericLiteral':
+                return numberValue(expression.value);
+            case 'StringLiteral':
+                return stringValue(expression.value);
+            case 'BooleanLiteral':
+                return booleanValue(expression.value);
+            case 'NullLiteral':
+                return nullValue;
+            case 'ObjectExpression':
+                const fields: ObjectFields = {};
+
+                for(const property of expression.properties) {
+                    switch(property.type) {
+                        case 'ObjectProperty':
+                            const key: Identifier = property.key;
+                            fields[key.name] = this.evaluateExpression(property.value);
+                            break;
+                        default:
+                            throw new NotImplementedError('unsupported property type ' + property.type);
+                    }
+                }
+
+                return objectValue(fields, rootPrototype);
+            case 'FunctionExpression':
+                return this.functionValue(expression);
+            case 'BinaryExpression':
+                const left = this.evaluateExpression(expression.left);
+                const right = this.evaluateExpression(expression.right);
+
+                switch (expression.operator) {
+                    case '+':
+                        if (left.type === 'string' || right.type === 'string') {
+                            return stringValue(toString(left) + toString(right));
+                        } else {
+                            return numberValue(toNumber(left) + toNumber(right));
+                        }
+                    case '-':
+                        return numberValue(toNumber(left) - toNumber(right));
+                    case '*':
+                        return numberValue(toNumber(left) * toNumber(right));
+                    case '/':
+                        return numberValue(toNumber(left) / toNumber(right));
+                    default:
+                        throw new NotImplementedError('unsupported operator ' + expression.operator);
+                }
+            case 'MemberExpression':
+                const object = this.evaluateExpression(expression.object);
+                const key: Identifier = expression.property;
+
+                if (object.type === 'object') {
+                    return getObjectField(object, key.name);
+                } else {
+                    throw new NotImplementedError('member access is unsupported for ' + object.type);
+                }
+            case 'AssignmentExpression':
+                const value = this.evaluateExpression(expression.right);
+                this.assignValue(value, expression.left);
+                return value;
+            case 'Identifier':
+                return this.variables[expression.name];
+        }
+
+        throw new NotImplementedError('unsupported expression ' + expression.type);
+    }
+
+    assignValue(value: Value, to: LVal): void {
+        switch(to.type) {
+            case 'Identifier':
+                this.variables[to.name] = value;
+                return;
+            case 'MemberExpression':
+                const object = this.evaluateExpression(to.object);
+                const key: Identifier = to.property;
+
+                if (object.type === 'object') {
+                    object.ownFields[key.name] = value;
+                } else {
+                    throw new NotImplementedError('member assignment is unsupported for ' + object.type);
+                }
+
+                return;
+            default:
+                throw new NotImplementedError('unsupported left value type ' + to.type);
+        }
+    }
+    
+    functionValue(functionNode: FunctionDeclaration | FunctionExpression): ObjectValue {
+        return objectValue({}, functionPrototype, {
+            function: functionNode,
+            scope: this
+        });
+    }
+}
 
 const ast = parse(`
+function sin() {
+    var a = 20;
+}
+
 var a = 10;
 const b = a + 20;
 let c = a + b * 20;
 a = 2;
 let d = a + b * 20;
+let e = { x: { y: 10 }, z: 30 };
+let f = e.x;
+e.x.y = 56;
 `);
 
 class NotImplementedError extends Error {
@@ -39,6 +173,19 @@ type UndefinedValue = {
 
 type ObjectValue = {
     readonly type: 'object';
+    readonly ownFields: ObjectFields;
+    readonly internalFields: InternalObjectFields;
+    readonly prototype: ObjectValue | NullValue;
+};
+
+type ObjectPrototypeValue = ObjectValue | NullValue;
+
+type ObjectFields = {
+    [variableName: string]: Value;
+};
+
+type InternalObjectFields = {
+    [variableName: string]: any;
 };
 
 const nullValue: NullValue = {
@@ -49,99 +196,27 @@ const undefinedValue: UndefinedValue = {
     type: 'undefined'
 };
 
-type VariablesObject = {
-    [variableName: string]: Value
+const rootPrototype: ObjectValue = {
+    type: 'object',
+    ownFields: {},
+    internalFields: {},
+    prototype: nullValue
 };
 
-const variables: VariablesObject = {};
+const functionPrototype = objectValue();
+
+type Variables = {
+    [variableName: string]: Value;
+};
+
+const globalScope = new Scope();
 
 for (const statement of ast.program.body) {
-    evaluateStatement(variables, statement);
+    globalScope.evaluateStatement(statement);
 }
 
-for (const variableName of Object.keys(variables)) {
-    console.log(variableName, variables[variableName]);
-}
-
-function evaluateStatement(variables: VariablesObject, statement: Statement): void {
-    switch(statement.type) {
-        case 'VariableDeclaration':
-            for(const declaration of statement.declarations) {
-                const initialValue = declaration.init === null ?
-                    undefinedValue :
-                    evaluateExpression(variables, declaration.init)
-
-                assignValue(variables, initialValue, declaration.id);
-            }
-            return;
-        case "ExpressionStatement":
-            evaluateExpression(variables, statement.expression);
-            return;
-        default:
-            throw new NotImplementedError('not supported statement type ' + statement.type);
-    }
-}
-
-function evaluateExpression(variables: VariablesObject, expression: Expression): Value {
-    switch(expression.type) {
-        case 'NumericLiteral':
-            return numberValue(expression.value);
-        case 'StringLiteral':
-            return stringValue(expression.value);
-        case 'BooleanLiteral':
-            return booleanValue(expression.value);
-        case 'NullLiteral':
-            return nullValue;
-        case 'ObjectExpression':
-            for(const property of expression.properties) {
-                switch(property.type) {
-                    case 'ObjectProperty':
-                    property.key
-                        break;
-                    default:
-                        throw new NotImplementedError('unsupported property type ' + property.type);
-                }
-            }
-            return nullValue;
-        case 'BinaryExpression':
-            const left = evaluateExpression(variables, expression.left);
-            const right = evaluateExpression(variables, expression.right);
-
-            switch (expression.operator) {
-                case '+':
-                    if (left.type === 'string' || right.type === 'string') {
-                        return stringValue(toString(left) + toString(right));
-                    } else {
-                        return numberValue(toNumber(left) + toNumber(right));
-                    }
-                case '-':
-                    return numberValue(toNumber(left) - toNumber(right));
-                case '*':
-                    return numberValue(toNumber(left) * toNumber(right));
-                case '/':
-                    return numberValue(toNumber(left) / toNumber(right));
-                default:
-                    throw new NotImplementedError('unsupported operator ' + expression.operator);
-            }
-        case 'AssignmentExpression':
-            const value = evaluateExpression(variables, expression.right);
-            assignValue(variables, value, expression.left);
-            return value;
-        case 'Identifier':
-            return variables[expression.name];
-    }
-
-    throw new NotImplementedError('unsupported expression ' + expression.type);
-}
-
-function assignValue(variables: VariablesObject, value: Value, to: LVal): void {
-    switch(to.type) {
-        case 'Identifier':
-            variables[to.name] = value;
-            return;
-        default:
-            throw new NotImplementedError('unsupported left value type ' + to.type);
-    }
+for (const variableName of Object.keys(globalScope.variables)) {
+    console.log(variableName, globalScope.variables[variableName]);
 }
 
 function toString(value: Value): string {
@@ -161,8 +236,16 @@ function toString(value: Value): string {
     }
 }
 
-function getObjectField(value: ObjectValue, fieldName: string): Value | null {
-    throw new NotImplementedError('fields of objects are not supported');
+function getObjectField(value: ObjectValue, fieldName: string): Value {
+    if (fieldName in value.ownFields) {
+        return value.ownFields[fieldName];
+    }
+
+    if (value.prototype.type === 'null') {
+        return undefinedValue;
+    }
+
+    return getObjectField(value.prototype, fieldName);
 }
 
 function executeFunction(functionValue: ObjectValue, thisArg: Value, args: Value[]): Value | null {
@@ -204,5 +287,14 @@ function booleanValue(value: boolean): BooleanValue {
     return {
         type: 'boolean',
         value
+    };
+}
+
+function objectValue(ownFields: ObjectFields = {}, prototype: ObjectPrototypeValue = rootPrototype, internalFields: InternalObjectFields = {}): ObjectValue {
+    return {
+        type: 'object',
+        ownFields,
+        internalFields,
+        prototype
     };
 }
