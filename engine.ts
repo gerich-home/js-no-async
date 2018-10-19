@@ -17,9 +17,11 @@ export class Engine {
     readonly globalScope: Scope = new Scope(this);
 
     constructor() {
-        this.rootPrototype.ownFields.toString = this.functionValue((thisArg, values) => {
+        this.rootPrototype.ownFields.toString = this.functionValue(() => {
             return stringValue('[object Object]');
         }) as any;
+
+        this.rootPrototype.ownFields.valueOf = this.functionValue(thisArg => thisArg) as any;
 
         this.globalScope.variables.log = this.functionValue((thisArg, values) => {
             console.log(...values.map(value => this.toString(value)));
@@ -63,7 +65,7 @@ export class Engine {
             case 'null':
                 return 0;
             case 'object':
-                throw new NotImplementedError('object.toNumber is not supported');
+                return this.toNumber(this.executeMethod(value, 'valueOf', []));
             case 'undefined':
                 return NaN;
         }
