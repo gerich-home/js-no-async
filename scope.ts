@@ -131,7 +131,8 @@ export class Scope {
             throw new NotImplementedError('cannot call non-function');
         }
 
-        return callee.internalFields.invoke(expression);
+        const argValues = expression.arguments.map(arg => this.evaluateExpression(arg));
+        return callee.internalFields.invoke(argValues);
     }
 
     evaluateBinaryExpression(expression: BinaryExpression): Value {
@@ -232,7 +233,27 @@ export class Scope {
     }
 
     functionValue(statement: FunctionExpression | FunctionDeclaration) {
-        return this.engine.functionValue(this, statement);
+        return this.engine.nativeFunctionValue(argValues => {
+            let index = 0;
+            
+            const childScope = this.createChildScope();
+            for(const parameter of statement.params) {
+                switch(parameter.type) {
+                    case 'Identifier':
+                        const argumentValue = index < argValues.length ?
+                            argValues[index] :
+                            undefinedValue;
+                        childScope.assignIdentifier(argumentValue, parameter);
+                    break;
+                    default:
+                        throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported');
+                }
+
+                index++;
+            }
+
+            return childScope.evaluateStatements(statement.body.body);
+        });
     }
 }
 
