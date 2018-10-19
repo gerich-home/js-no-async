@@ -5,7 +5,18 @@ export class Scope {
     
     constructor(private readonly parent: Scope | null = null) {}
     
-    evaluateStatement(statement: Statement): void {
+    evaluateStatements(statements: Statement[]): Value {
+        for (const statement of statements) {
+            const result = this.evaluateStatement(statement);
+            if (result !== null) {
+                return result;
+            }
+        }
+
+        return undefinedValue;
+    }
+
+    evaluateStatement(statement: Statement): Value | null {
         switch(statement.type) {
             case 'VariableDeclaration':
                 for(const declaration of statement.declarations) {
@@ -15,17 +26,23 @@ export class Scope {
 
                     this.assignValue(initialValue, declaration.id);
                 }
-                return;
+                return null;
             case 'FunctionDeclaration':
                 if(statement.id === null) {
                     throw new NotImplementedError('wrong function declaration');
                 } else {
                     this.assignValue(this.functionValue(statement), statement.id);
                 }
-                return;
+                return null;
             case "ExpressionStatement":
                 this.evaluateExpression(statement.expression);
-                return;
+                return null;
+            case "ReturnStatement":
+                if (statement.argument === null) {
+                    return undefinedValue;
+                } else {
+                    return this.evaluateExpression(statement.argument);
+                }
             default:
                 throw new NotImplementedError('not supported statement type ' + statement.type);
         }
@@ -58,6 +75,22 @@ export class Scope {
                 return objectValue(fields, rootPrototype);
             case 'FunctionExpression':
                 return this.functionValue(expression);
+            case 'CallExpression':
+                const callee = this.evaluateExpression(expression.callee);
+                
+                if (callee.type === 'object') {
+                    if (callee.prototype === functionPrototype) {
+                        const functionDeclarationScope: Scope = callee.internalFields.scope;
+                        const functionNode: FunctionDeclaration | FunctionExpression = callee.internalFields.function;
+                        const newScope = new Scope(functionDeclarationScope);
+
+                        return newScope.evaluateStatements(functionNode.body.body);
+                    } else {
+                        throw new NotImplementedError('call is unsupported for ' + callee.type);
+                    }
+                } else {
+                    throw new NotImplementedError('call is unsupported for ' + callee.type);
+                }
             case 'BinaryExpression':
                 const left = this.evaluateExpression(expression.left);
                 const right = this.evaluateExpression(expression.right);
