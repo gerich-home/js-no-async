@@ -1,4 +1,4 @@
-import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression } from "@babel/types";
+import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression } from "@babel/types";
 
 export class Scope {
     readonly variables: Variables = {};
@@ -8,6 +8,7 @@ export class Scope {
     evaluateStatements(statements: Statement[]): Value {
         for (const statement of statements) {
             const result = this.evaluateStatement(statement);
+
             if (result !== null) {
                 return result;
             }
@@ -19,30 +20,13 @@ export class Scope {
     evaluateStatement(statement: Statement): Value | null {
         switch(statement.type) {
             case 'VariableDeclaration':
-                for(const declaration of statement.declarations) {
-                    const initialValue = declaration.init === null ?
-                        undefinedValue :
-                        this.evaluateExpression(declaration.init);
-
-                    this.assignValue(initialValue, declaration.id);
-                }
-                return null;
+                return this.evaluateVariableDeclaration(statement);
             case 'FunctionDeclaration':
-                if(statement.id === null) {
-                    throw new NotImplementedError('wrong function declaration');
-                } else {
-                    this.assignValue(this.functionValue(statement), statement.id);
-                }
-                return null;
+                return this.evaluateFunctionDeclaration(statement);
             case "ExpressionStatement":
-                this.evaluateExpression(statement.expression);
-                return null;
+                return this.evaluateExpressionStatement(statement);
             case "ReturnStatement":
-                if (statement.argument === null) {
-                    return undefinedValue;
-                } else {
-                    return this.evaluateExpression(statement.argument);
-                }
+                return this.evaluateReturnStatement(statement);
             default:
                 throw new NotImplementedError('not supported statement type ' + statement.type);
         }
@@ -51,105 +35,181 @@ export class Scope {
     evaluateExpression(expression: Expression | PatternLike): Value {
         switch(expression.type) {
             case 'NumericLiteral':
-                return numberValue(expression.value);
+                return this.evaluateNumericLiteral(expression);
             case 'StringLiteral':
-                return stringValue(expression.value);
+                return this.evaluateStringLiteral(expression);
             case 'BooleanLiteral':
-                return booleanValue(expression.value);
+                return this.evaluateBooleanLiteral(expression);
             case 'NullLiteral':
                 return nullValue;
             case 'ObjectExpression':
-                const fields: ObjectFields = {};
-
-                for(const property of expression.properties) {
-                    switch(property.type) {
-                        case 'ObjectProperty':
-                            const key: Identifier = property.key;
-                            fields[key.name] = this.evaluateExpression(property.value);
-                            break;
-                        default:
-                            throw new NotImplementedError('unsupported property type ' + property.type);
-                    }
-                }
-
-                return objectValue(fields, rootPrototype);
+                return this.evaluateObjectExpression(expression);
             case 'FunctionExpression':
                 return this.functionValue(expression);
             case 'CallExpression':
-                const callee = this.evaluateExpression(expression.callee);
-                
-                if (callee.type === 'object') {
-                    if (callee.prototype === functionPrototype) {
-                        const functionDeclarationScope: Scope = callee.internalFields.scope;
-                        const functionNode: FunctionDeclaration | FunctionExpression = callee.internalFields.function;
-                        const newScope = new Scope(functionDeclarationScope);
-
-                        return newScope.evaluateStatements(functionNode.body.body);
-                    } else {
-                        throw new NotImplementedError('call is unsupported for ' + callee.type);
-                    }
-                } else {
-                    throw new NotImplementedError('call is unsupported for ' + callee.type);
-                }
+                return this.evaluateCallExpression(expression);
             case 'BinaryExpression':
-                const left = this.evaluateExpression(expression.left);
-                const right = this.evaluateExpression(expression.right);
-
-                switch (expression.operator) {
-                    case '+':
-                        if (left.type === 'string' || right.type === 'string') {
-                            return stringValue(toString(left) + toString(right));
-                        } else {
-                            return numberValue(toNumber(left) + toNumber(right));
-                        }
-                    case '-':
-                        return numberValue(toNumber(left) - toNumber(right));
-                    case '*':
-                        return numberValue(toNumber(left) * toNumber(right));
-                    case '/':
-                        return numberValue(toNumber(left) / toNumber(right));
-                    default:
-                        throw new NotImplementedError('unsupported operator ' + expression.operator);
-                }
+                return this.evaluateBinaryExpression(expression);
             case 'MemberExpression':
-                const object = this.evaluateExpression(expression.object);
-                const key: Identifier = expression.property;
-
-                if (object.type === 'object') {
-                    return getObjectField(object, key.name);
-                } else {
-                    throw new NotImplementedError('member access is unsupported for ' + object.type);
-                }
+                return this.evaluateMemberExpression(expression);
             case 'AssignmentExpression':
-                const value = this.evaluateExpression(expression.right);
-                this.assignValue(value, expression.left);
-                return value;
+                return this.evaluateAssignmentExpression(expression);
             case 'Identifier':
-                return this.variables[expression.name];
+                return this.evaluateIdentifier(expression);
         }
 
         throw new NotImplementedError('unsupported expression ' + expression.type);
     }
 
+    evaluateVariableDeclaration(statement: VariableDeclaration): null {
+        for(const declaration of statement.declarations) {
+            const initialValue = declaration.init === null ?
+                undefinedValue :
+                this.evaluateExpression(declaration.init);
+
+            this.assignValue(initialValue, declaration.id);
+        }
+
+        return null;
+    }
+
+    evaluateFunctionDeclaration(statement: FunctionDeclaration): null {
+        if(statement.id === null) {
+            throw new NotImplementedError('wrong function declaration');
+        } else {
+            this.assignValue(this.functionValue(statement), statement.id);
+        }
+
+        return null;
+    }
+
+    evaluateExpressionStatement(statement: ExpressionStatement): null {
+        this.evaluateExpression(statement.expression);
+
+        return null;
+    }
+
+    evaluateReturnStatement(statement: ReturnStatement): Value {
+        if (statement.argument === null) {
+            return undefinedValue;
+        } else {
+            return this.evaluateExpression(statement.argument);
+        }
+    }
+
+    evaluateNumericLiteral(expression: NumericLiteral): NumberValue {
+        return numberValue(expression.value);
+    }
+
+    evaluateStringLiteral(expression: StringLiteral): StringValue {
+        return stringValue(expression.value);
+    }
+
+    evaluateBooleanLiteral(expression: BooleanLiteral): BooleanValue {
+        return booleanValue(expression.value);
+    }
+
+    evaluateCallExpression(expression: CallExpression): Value {
+        const callee = this.evaluateExpression(expression.callee);
+                
+        if (callee.type !== 'object') {
+            throw new NotImplementedError('call is unsupported for ' + callee.type);
+        }
+
+        if (callee.prototype !== functionPrototype) {
+            throw new NotImplementedError('cannot call non-function');
+        }
+
+        const functionDeclarationScope: Scope = callee.internalFields.scope;
+        const functionNode: FunctionDeclaration | FunctionExpression = callee.internalFields.function;
+        const newScope = new Scope(functionDeclarationScope);
+
+        return newScope.evaluateStatements(functionNode.body.body);
+    }
+
+    evaluateBinaryExpression(expression: BinaryExpression): Value {
+        const left = this.evaluateExpression(expression.left);
+        const right = this.evaluateExpression(expression.right);
+
+        switch (expression.operator) {
+            case '+':
+                if (left.type === 'string' || right.type === 'string') {
+                    return stringValue(toString(left) + toString(right));
+                } else {
+                    return numberValue(toNumber(left) + toNumber(right));
+                }
+            case '-':
+                return numberValue(toNumber(left) - toNumber(right));
+            case '*':
+                return numberValue(toNumber(left) * toNumber(right));
+            case '/':
+                return numberValue(toNumber(left) / toNumber(right));
+        }
+
+        throw new NotImplementedError('unsupported operator ' + expression.operator);
+    }
+
+    evaluateObjectExpression(expression: ObjectExpression): ObjectValue {
+        const fields: ObjectFields = {};
+
+        for(const property of expression.properties) {
+            switch(property.type) {
+                case 'ObjectProperty':
+                    const key: Identifier = property.key;
+                    fields[key.name] = this.evaluateExpression(property.value);
+                    break;
+                default:
+                    throw new NotImplementedError('unsupported property type ' + property.type);
+            }
+        }
+
+        return objectValue(fields, rootPrototype);
+    }
+
+    evaluateMemberExpression(expression: MemberExpression): Value {
+        const object = this.evaluateExpression(expression.object);
+        const key: Identifier = expression.property;
+
+        if (object.type !== 'object') {
+            throw new NotImplementedError('member access is unsupported for ' + object.type);
+        }
+        return getObjectField(object, key.name);
+    }
+
+    evaluateAssignmentExpression(expression: AssignmentExpression): Value {
+        const value = this.evaluateExpression(expression.right);
+        this.assignValue(value, expression.left);
+        return value;
+    }
+    
+    evaluateIdentifier(expression: Identifier): Value {
+        return this.variables[expression.name];
+    }
+
+    assignIdentifier(value: Value, to: Identifier): void {
+        this.variables[to.name] = value;
+    }
+
+    assignMember(value: Value, to: MemberExpression): void {
+        const object = this.evaluateExpression(to.object);
+        const key: Identifier = to.property;
+
+        if (object.type !== 'object') {
+            throw new NotImplementedError('member assignment is unsupported for ' + object.type);
+        }
+
+        object.ownFields[key.name] = value;
+    }
+
     assignValue(value: Value, to: LVal): void {
         switch(to.type) {
             case 'Identifier':
-                this.variables[to.name] = value;
-                return;
+                return this.assignIdentifier(value, to);
             case 'MemberExpression':
-                const object = this.evaluateExpression(to.object);
-                const key: Identifier = to.property;
-
-                if (object.type === 'object') {
-                    object.ownFields[key.name] = value;
-                } else {
-                    throw new NotImplementedError('member assignment is unsupported for ' + object.type);
-                }
-
-                return;
-            default:
-                throw new NotImplementedError('unsupported left value type ' + to.type);
+                return this.assignMember(value, to);
         }
+
+        throw new NotImplementedError('unsupported left value type ' + to.type);
     }
     
     functionValue(functionNode: FunctionDeclaration | FunctionExpression): ObjectValue {
