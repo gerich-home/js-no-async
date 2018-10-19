@@ -1,4 +1,4 @@
-import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression } from "@babel/types";
+import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression } from '@babel/types';
 
 export class Scope {
     readonly variables: Variables = {};
@@ -23,9 +23,9 @@ export class Scope {
                 return this.evaluateVariableDeclaration(statement);
             case 'FunctionDeclaration':
                 return this.evaluateFunctionDeclaration(statement);
-            case "ExpressionStatement":
+            case 'ExpressionStatement':
                 return this.evaluateExpressionStatement(statement);
-            case "ReturnStatement":
+            case 'ReturnStatement':
                 return this.evaluateReturnStatement(statement);
             default:
                 throw new NotImplementedError('not supported statement type ' + statement.type);
