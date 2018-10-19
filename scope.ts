@@ -3,6 +3,7 @@ import { Variables, Value, NumberValue, StringValue, BooleanValue, ObjectValue, 
 import { objectValue, stringValue, numberValue, booleanValue, undefinedValue, nullValue } from './factories';
 import { Engine } from './engine';
 import { NotImplementedError } from './notImplementedError';
+import { toNumber, toString } from './globals';
 
 export class Scope {
     readonly variables: Variables = {};
@@ -233,7 +234,7 @@ export class Scope {
     }
 
     functionValue(statement: FunctionExpression | FunctionDeclaration) {
-        return this.engine.nativeFunctionValue(argValues => {
+        return this.engine.functionValue(argValues => {
             let index = 0;
             
             const childScope = this.createChildScope();
@@ -257,23 +258,6 @@ export class Scope {
     }
 }
 
-function toString(value: Value): string {
-    switch(value.type) {
-        case 'string':
-            return value.value;
-        case 'boolean':
-            return value.value.toString();
-        case 'number':
-            return value.value.toString();
-        case 'null':
-            return 'null';
-        case 'object':
-            throw new NotImplementedError('object.toNumber is not supported');
-        case 'undefined':
-            return 'undefined';
-    }
-}
-
 function getObjectField(value: ObjectValue, fieldName: string): Value {
     if (fieldName in value.ownFields) {
         return value.ownFields[fieldName];
@@ -288,21 +272,4 @@ function getObjectField(value: ObjectValue, fieldName: string): Value {
 
 function executeFunction(functionValue: ObjectValue, thisArg: Value, args: Value[]): Value | null {
     throw new NotImplementedError('methods of objects are not supported');
-}
-
-function toNumber(value: Value): number {
-    switch(value.type) {
-        case 'string':
-            return Number(value.value);
-        case 'boolean':
-            return Number(value.value);
-        case 'number':
-            return value.value;
-        case 'null':
-            return 0;
-        case 'object':
-            throw new NotImplementedError('object.toNumber is not supported');
-        case 'undefined':
-            return NaN;
-    }
 }

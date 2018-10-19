@@ -17,12 +17,15 @@ e.x.y = 56;
 const bar = e.w();
 
 const foo = sin(2)();
+
+log(1,2,'3faf');
 `);
 
 const globalScope = new Engine().globalScope;
 
 globalScope.evaluateStatements(ast.program.body);
 
+return;
 for (const variableName of Object.keys(globalScope.variables)) {
     console.log(variableName, globalScope.variables[variableName]);
 }
