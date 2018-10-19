@@ -1,9 +1,11 @@
-import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression } from '@babel/types';
+import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName } from '@babel/types';
 
 export class Scope {
     readonly variables: Variables = {};
     
-    constructor(private readonly parent: Scope | null = null) {}
+    constructor(
+        private readonly parent: Scope | null = null
+    ) {}
     
     evaluateStatements(statements: Statement[]): Value {
         for (const statement of statements) {
@@ -32,7 +34,7 @@ export class Scope {
         }
     }
 
-    evaluateExpression(expression: Expression | PatternLike): Value {
+    evaluateExpression(expression: Expression | PatternLike | SpreadElement | JSXNamespacedName): Value {
         switch(expression.type) {
             case 'NumericLiteral':
                 return this.evaluateNumericLiteral(expression);
@@ -122,7 +124,26 @@ export class Scope {
 
         const functionDeclarationScope: Scope = callee.internalFields.scope;
         const functionNode: FunctionDeclaration | FunctionExpression = callee.internalFields.function;
+        
+        
         const newScope = new Scope(functionDeclarationScope);
+
+        const argValues = expression.arguments.map(arg => this.evaluateExpression(arg));
+
+        let index = 0;
+        for(const parameter of functionNode.params) {
+            switch(parameter.type) {
+                case 'Identifier':
+                    const argumentValue = index < argValues.length ?
+                        argValues[index] :
+                        undefinedValue;
+                    newScope.assignIdentifier(argumentValue, parameter);
+                break;
+                default:
+                    throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported');
+            }
+            index++;
+        }
 
         return newScope.evaluateStatements(functionNode.body.body);
     }
@@ -183,7 +204,15 @@ export class Scope {
     }
     
     evaluateIdentifier(expression: Identifier): Value {
-        return this.variables[expression.name];
+        if (expression.name in this.variables) {
+            return this.variables[expression.name];
+        }
+
+        if (this.parent !== null) {
+            return this.parent.evaluateIdentifier(expression);
+        }
+
+        return undefinedValue;
     }
 
     assignIdentifier(value: Value, to: Identifier): void {

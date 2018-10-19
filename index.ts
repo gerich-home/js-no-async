@@ -2,8 +2,8 @@ import { parse } from "@babel/parser";
 import { Scope } from "./scope";
 
 const ast = parse(`
-function sin() {
-    return 20 + 80;
+function sin(x) {
+    return function() { return x + a; };
 }
 
 var a = 10;
@@ -16,7 +16,7 @@ let f = e.x;
 e.x.y = 56;
 const bar = e.w();
 
-const foo = sin();
+const foo = sin(2)();
 `);
 
 const globalScope = new Scope();
