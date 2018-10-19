@@ -1,9 +1,13 @@
 import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName } from '@babel/types';
+import { Variables, Value, NumberValue, StringValue, BooleanValue, ObjectValue, ObjectFields, ObjectPrototypeValue, NullValue, UndefinedValue, InternalObjectFields } from './types';
+import { objectValue, stringValue, numberValue, booleanValue, undefinedValue, nullValue } from './factories';
+import { Engine } from './engine';
 
 export class Scope {
     readonly variables: Variables = {};
     
     constructor(
+        readonly engine: Engine,
         private readonly parent: Scope | null = null
     ) {}
     
@@ -118,7 +122,7 @@ export class Scope {
             throw new NotImplementedError('call is unsupported for ' + callee.type);
         }
 
-        if (callee.prototype !== functionPrototype) {
+        if (callee.prototype !== this.engine.functionPrototype) {
             throw new NotImplementedError('cannot call non-function');
         }
 
@@ -126,7 +130,7 @@ export class Scope {
         const functionNode: FunctionDeclaration | FunctionExpression = callee.internalFields.function;
         
         
-        const newScope = new Scope(functionDeclarationScope);
+        const newScope = new Scope(this.engine, functionDeclarationScope);
 
         const argValues = expression.arguments.map(arg => this.evaluateExpression(arg));
 
@@ -184,7 +188,7 @@ export class Scope {
             }
         }
 
-        return objectValue(fields, rootPrototype);
+        return objectValue(this.engine.rootPrototype, fields);
     }
 
     evaluateMemberExpression(expression: MemberExpression): Value {
@@ -242,7 +246,7 @@ export class Scope {
     }
     
     functionValue(functionNode: FunctionDeclaration | FunctionExpression): ObjectValue {
-        return objectValue({}, functionPrototype, {
+        return objectValue(this.engine.functionPrototype, {}, {
             function: functionNode,
             scope: this
         });
@@ -252,69 +256,6 @@ export class Scope {
 
 class NotImplementedError extends Error {
 }
-
-type Value = NumberValue | StringValue | BooleanValue | NullValue | UndefinedValue | ObjectValue;
-
-type NumberValue = {
-    readonly type: 'number';
-    readonly value: number;
-};
-
-type StringValue = {
-    readonly type: 'string';
-    readonly value: string;
-};
-
-type BooleanValue = {
-    readonly type: 'boolean';
-    readonly value: boolean;
-};
-
-type NullValue = {
-    readonly type: 'null';
-};
-
-type UndefinedValue = {
-    readonly type: 'undefined';
-};
-
-type ObjectValue = {
-    readonly type: 'object';
-    readonly ownFields: ObjectFields;
-    readonly internalFields: InternalObjectFields;
-    readonly prototype: ObjectValue | NullValue;
-};
-
-type ObjectPrototypeValue = ObjectValue | NullValue;
-
-type ObjectFields = {
-    [variableName: string]: Value;
-};
-
-type InternalObjectFields = {
-    [variableName: string]: any;
-};
-
-const nullValue: NullValue = {
-    type: 'null'
-};
-
-const undefinedValue: UndefinedValue = {
-    type: 'undefined'
-};
-
-const rootPrototype: ObjectValue = {
-    type: 'object',
-    ownFields: {},
-    internalFields: {},
-    prototype: nullValue
-};
-
-const functionPrototype = objectValue();
-
-type Variables = {
-    [variableName: string]: Value;
-};
 
 function toString(value: Value): string {
     switch(value.type) {
@@ -364,34 +305,4 @@ function toNumber(value: Value): number {
         case 'undefined':
             return NaN;
     }
-}
-
-function numberValue(value: number): NumberValue {
-    return {
-        type: 'number',
-        value
-    };
-}
-
-function stringValue(value: string): StringValue {
-    return {
-        type: 'string',
-        value
-    };
-}
-
-function booleanValue(value: boolean): BooleanValue {
-    return {
-        type: 'boolean',
-        value
-    };
-}
-
-function objectValue(ownFields: ObjectFields = {}, prototype: ObjectPrototypeValue = rootPrototype, internalFields: InternalObjectFields = {}): ObjectValue {
-    return {
-        type: 'object',
-        ownFields,
-        internalFields,
-        prototype
-    };
 }

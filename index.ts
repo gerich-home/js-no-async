@@ -1,5 +1,5 @@
-import { parse } from "@babel/parser";
-import { Scope } from "./scope";
+import { parse } from '@babel/parser';
+import { Engine } from './engine';
 
 const ast = parse(`
 function sin(x) {
@@ -19,7 +19,7 @@ const bar = e.w();
 const foo = sin(2)();
 `);
 
-const globalScope = new Scope();
+const globalScope = new Engine().globalScope;
 
 globalScope.evaluateStatements(ast.program.body);
 
