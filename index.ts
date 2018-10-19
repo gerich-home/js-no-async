@@ -1,7 +1,6 @@
 import { parse } from "@babel/parser";
 import { Scope } from "./scope";
 
-
 const ast = parse(`
 function sin() {
     var a = 20;
