@@ -43,3 +43,7 @@ export type InternalObjectFields = {
 export type Variables = {
     [variableName: string]: Value;
 };
+
+export type FunctionInternalFields = {
+    invoke(thisArg: Value, argValues: Value[]): Value;
+};

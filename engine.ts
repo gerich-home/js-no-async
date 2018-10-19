@@ -1,9 +1,8 @@
 import { Scope } from './scope';
-import { ObjectValue, Value } from './types';
-import { objectValue, nullValue, undefinedValue } from './factories';
-import { FunctionDeclaration, FunctionExpression, CallExpression } from '@babel/types';
+import { ObjectValue, Value, FunctionInternalFields } from './types';
+import { objectValue, nullValue, undefinedValue, stringValue } from './factories';
 import { NotImplementedError } from './notImplementedError';
-import { toString } from './globals';
+import { getObjectField } from './globals';
 
 export class Engine {
     readonly rootPrototype: ObjectValue = {
@@ -18,15 +17,71 @@ export class Engine {
     readonly globalScope: Scope = new Scope(this);
 
     constructor() {
-        this.globalScope.variables['log'] = this.functionValue(values => {
-            console.log(...values.map(toString));
+        this.rootPrototype.ownFields.toString = this.functionValue((thisArg, values) => {
+            return stringValue('[object Object]');
+        }) as any;
+
+        this.globalScope.variables.log = this.functionValue((thisArg, values) => {
+            console.log(...values.map(value => this.toString(value)));
             return undefinedValue;
         });
     }
 
-    functionValue(invoke: (argValues: Value[]) => Value): ObjectValue {
-        return objectValue(this.functionPrototype, {}, {
+    functionValue(invoke: FunctionInternalFields['invoke']): ObjectValue {
+        const internalFields: FunctionInternalFields = {
             invoke
-        });
+        };
+
+        return objectValue(this.functionPrototype, {}, internalFields);
+    }
+    
+    toString(value: Value): string {
+        switch(value.type) {
+            case 'string':
+                return value.value;
+            case 'boolean':
+                return value.value.toString();
+            case 'number':
+                return value.value.toString();
+            case 'null':
+                return 'null';
+            case 'object':
+                return this.toString(this.executeMethod(value, 'toString', []));
+            case 'undefined':
+                return 'undefined';
+        }
+    }
+    
+    toNumber(value: Value): number {
+        switch(value.type) {
+            case 'string':
+                return Number(value.value);
+            case 'boolean':
+                return Number(value.value);
+            case 'number':
+                return value.value;
+            case 'null':
+                return 0;
+            case 'object':
+                throw new NotImplementedError('object.toNumber is not supported');
+            case 'undefined':
+                return NaN;
+        }
+    }
+    
+    executeFunction(callee: Value, thisArg: Value, args: Value[]): Value {
+        if (callee.type !== 'object') {
+            throw new NotImplementedError('call is unsupported for ' + callee.type);
+        }
+    
+        if (callee.prototype !== this.functionPrototype) {
+            throw new NotImplementedError('cannot call non-function');
+        }
+    
+        return (callee.internalFields as FunctionInternalFields).invoke(thisArg, args);
+    }
+
+    executeMethod(value: ObjectValue, methodName: string, args: Value[]): Value {
+        return this.executeFunction(getObjectField(value, methodName), value, args);
     }
 }

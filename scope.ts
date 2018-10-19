@@ -1,9 +1,9 @@
 import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName } from '@babel/types';
-import { Variables, Value, NumberValue, StringValue, BooleanValue, ObjectValue, ObjectFields, ObjectPrototypeValue, NullValue, UndefinedValue, InternalObjectFields } from './types';
+import { Variables, Value, NumberValue, StringValue, BooleanValue, ObjectValue, ObjectFields } from './types';
 import { objectValue, stringValue, numberValue, booleanValue, undefinedValue, nullValue } from './factories';
 import { Engine } from './engine';
 import { NotImplementedError } from './notImplementedError';
-import { toNumber, toString } from './globals';
+import { getObjectField } from './globals';
 
 export class Scope {
     readonly variables: Variables = {};
@@ -123,19 +123,21 @@ export class Scope {
 
     evaluateCallExpression(expression: CallExpression): Value {
         const callee = this.evaluateExpression(expression.callee);
-                
-        if (callee.type !== 'object') {
-            throw new NotImplementedError('call is unsupported for ' + callee.type);
-        }
 
-        if (callee.prototype !== this.engine.functionPrototype) {
-            throw new NotImplementedError('cannot call non-function');
-        }
+        const thisArg = this.getThisArg(expression.callee);
+        const args = expression.arguments.map(arg => this.evaluateExpression(arg));
 
-        const argValues = expression.arguments.map(arg => this.evaluateExpression(arg));
-        return callee.internalFields.invoke(argValues);
+        return this.engine.executeFunction(callee, thisArg, args);
     }
 
+    getThisArg(callee: Expression): Value {
+        switch (callee.type) {
+            case 'MemberExpression':
+                return this.evaluateExpression(callee.object);
+            default:
+                return undefinedValue;
+        }
+    }
     evaluateBinaryExpression(expression: BinaryExpression): Value {
         const left = this.evaluateExpression(expression.left);
         const right = this.evaluateExpression(expression.right);
@@ -143,16 +145,16 @@ export class Scope {
         switch (expression.operator) {
             case '+':
                 if (left.type === 'string' || right.type === 'string') {
-                    return stringValue(toString(left) + toString(right));
+                    return stringValue(this.engine.toString(left) + this.engine.toString(right));
                 } else {
-                    return numberValue(toNumber(left) + toNumber(right));
+                    return numberValue(this.engine.toNumber(left) + this.engine.toNumber(right));
                 }
             case '-':
-                return numberValue(toNumber(left) - toNumber(right));
+                return numberValue(this.engine.toNumber(left) - this.engine.toNumber(right));
             case '*':
-                return numberValue(toNumber(left) * toNumber(right));
+                return numberValue(this.engine.toNumber(left) * this.engine.toNumber(right));
             case '/':
-                return numberValue(toNumber(left) / toNumber(right));
+                return numberValue(this.engine.toNumber(left) / this.engine.toNumber(right));
         }
 
         throw new NotImplementedError('unsupported operator ' + expression.operator);
@@ -186,6 +188,7 @@ export class Scope {
         if (object.type !== 'object') {
             throw new NotImplementedError('member access is unsupported for ' + object.type);
         }
+
         return getObjectField(object, key.name);
     }
 
@@ -196,7 +199,7 @@ export class Scope {
     }
     
     evaluateIdentifier(expression: Identifier): Value {
-        if (expression.name in this.variables) {
+        if (this.variables.hasOwnProperty(expression.name)) {
             return this.variables[expression.name];
         }
 
@@ -234,7 +237,7 @@ export class Scope {
     }
 
     functionValue(statement: FunctionExpression | FunctionDeclaration) {
-        return this.engine.functionValue(argValues => {
+        return this.engine.functionValue((thisArg, argValues) => {
             let index = 0;
             
             const childScope = this.createChildScope();
@@ -256,20 +259,4 @@ export class Scope {
             return childScope.evaluateStatements(statement.body.body);
         });
     }
-}
-
-function getObjectField(value: ObjectValue, fieldName: string): Value {
-    if (fieldName in value.ownFields) {
-        return value.ownFields[fieldName];
-    }
-
-    if (value.prototype.type === 'null') {
-        return undefinedValue;
-    }
-
-    return getObjectField(value.prototype, fieldName);
-}
-
-function executeFunction(functionValue: ObjectValue, thisArg: Value, args: Value[]): Value | null {
-    throw new NotImplementedError('methods of objects are not supported');
 }

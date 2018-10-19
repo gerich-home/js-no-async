@@ -18,7 +18,7 @@ const bar = e.w();
 
 const foo = sin(2)();
 
-log(1,2,'3faf');
+log(1,2,'3faf', { toString: function(){ return 10; }});
 `);
 
 const globalScope = new Engine().globalScope;
