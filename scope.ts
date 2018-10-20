@@ -1,4 +1,4 @@
-import { Node, Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName, Block, traverse, ObjectMethod, ThisExpression, BlockStatement } from '@babel/types';
+import { Node, Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName, Block, traverse, ObjectMethod, ThisExpression, BlockStatement, NewExpression } from '@babel/types';
 import { Variables, Value, NumberValue, StringValue, BooleanValue, ObjectValue, ObjectFields } from './types';
 import { objectValue, stringValue, numberValue, booleanValue, undefinedValue, nullValue } from './factories';
 import { Engine } from './engine';
