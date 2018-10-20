@@ -1,3 +1,5 @@
+import { Statement } from "@babel/types";
+
 export type Value = NumberValue | StringValue | BooleanValue | NullValue | UndefinedValue | ObjectValue;
 
 export type NumberValue = {
@@ -46,4 +48,8 @@ export type Variables = {
 
 export type FunctionInternalFields = {
     invoke(thisArg: Value, argValues: Value[]): Value;
+};
+
+export type Block = {
+    body: Statement[];
 };

@@ -1,4 +1,4 @@
-import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName } from '@babel/types';
+import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName, Block, traverse } from '@babel/types';
 import { Variables, Value, NumberValue, StringValue, BooleanValue, ObjectValue, ObjectFields } from './types';
 import { objectValue, stringValue, numberValue, booleanValue, undefinedValue, nullValue } from './factories';
 import { Engine } from './engine';
@@ -17,8 +17,47 @@ export class Scope {
         return new Scope(this.engine, this);
     }
 
-    evaluateStatements(statements: Statement[]): Value {
-        for (const statement of statements) {
+    evaluateStatements(block: Block): Value {
+        const state = {
+            functionDepth: 0,
+            vars: [] as string[]
+        };
+        
+        traverse(block, {
+            enter(node, ancestors, state) {
+                const type = node.type;
+                if (state.functionDepth === 0) {
+                    switch(node.type) {
+                        case 'FunctionDeclaration':
+                            if(node.id !== null) {
+                                state.vars.push(node.id.name);
+                            }
+                        break;
+                        case 'VariableDeclaration':
+                            state.vars.push(...node.declarations
+                                .filter(d => d.id.type === 'Identifier')
+                                .map(d => (d.id as Identifier).name)
+                                );
+                        break;
+                    }
+                }
+                
+                if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression') {
+                    state.functionDepth++;
+                }
+            },
+            exit(node, ancestors, state) {
+                if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression') {
+                    state.functionDepth--;
+                }
+            }
+        }, state);
+
+        for (const varName of state.vars) {
+            this.variables[varName] = undefinedValue;
+        }
+
+        for (const statement of block.body) {
             const result = this.evaluateStatement(statement);
 
             if (result !== null) {
@@ -211,7 +250,15 @@ export class Scope {
     }
 
     assignIdentifier(value: Value, to: Identifier): void {
-        this.variables[to.name] = value;
+        if (this.variables.hasOwnProperty(to.name)) {
+            this.variables[to.name] = value;
+        } else {
+            if (this.parent === null) {
+                throw new NotImplementedError('cannot assign variable as it is not defined ' + to.name);
+            }
+
+            this.parent.assignIdentifier(value, to);
+        }
     }
 
     assignMember(value: Value, to: MemberExpression): void {
@@ -247,7 +294,7 @@ export class Scope {
                         const argumentValue = index < argValues.length ?
                             argValues[index] :
                             undefinedValue;
-                        childScope.assignIdentifier(argumentValue, parameter);
+                        childScope.variables[parameter.name] = argumentValue;
                     break;
                     default:
                         throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported');
@@ -256,7 +303,7 @@ export class Scope {
                 index++;
             }
 
-            return childScope.evaluateStatements(statement.body.body);
+            return childScope.evaluateStatements(statement.body);
         });
     }
 }

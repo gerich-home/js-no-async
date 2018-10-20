@@ -2,28 +2,27 @@ import { parse } from '@babel/parser';
 import { Engine } from './engine';
 
 const ast = parse(`
-function sin(x) {
-    return function() { return x + a; };
+function num(a) {
+    return {
+        inc: function(b) { a = a + b; },
+        get: function() { return a; }
+    };
 }
 
-var a = 10;
-const b = a + 20;
-let c = a + b * 20;
-a = 2;
-let d = a + b * 20;
-let e = { x: { y: 10 }, z: 30, w: sin };
-let f = e.x;
-e.x.y = 56;
-const bar = e.w();
-
-const foo = sin(2)();
-
-log(1,2,'3faf', { toString: function(){ return 10; }});
+var n1 = num(10);
+var n2 = num(20);
+log(n1.get());
+log(n2.get());
+n1.inc(5);
+n2.inc(33);
+log(n1.get());
+log(n2.get());
 `);
 
 const globalScope = new Engine().globalScope;
 
-globalScope.evaluateStatements(ast.program.body);
+
+globalScope.evaluateStatements(ast.program);
 
 return;
 for (const variableName of Object.keys(globalScope.variables)) {
