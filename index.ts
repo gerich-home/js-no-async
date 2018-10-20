@@ -11,9 +11,10 @@ function num(a) {
 
 function cnt(a) {
     this.a = a;
-    this.inc = function(b) { this.a = this.a + b; };
-    this.get = function() { return this.a; };
 }
+
+cnt.prototype.inc = function(b) { this.a = this.a + b; };
+cnt.prototype.get = function() { return this.a; };
 
 var n = new cnt(30);
 
