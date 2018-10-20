@@ -34,7 +34,12 @@ export class Engine {
             invoke
         };
 
-        return objectValue(this.functionPrototype, {}, internalFields);
+        const result = objectValue(this.functionPrototype, {
+            prototype: objectValue(this.rootPrototype)
+        }, internalFields);
+
+        (result.ownFields.constructor as any) = result;
+        return result;
     }
     
     toString(value: Value): string {

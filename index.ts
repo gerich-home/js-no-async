@@ -9,6 +9,8 @@ function num(a) {
     };
 }
 
+var n = new num(30);
+
 var n1 = num(10);
 var n2 = num(20);
 log(n1.get());
