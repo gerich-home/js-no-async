@@ -1,4 +1,4 @@
-import { Node, Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName, Block, traverse, ObjectMethod } from '@babel/types';
+import { Node, Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName, Block, traverse, ObjectMethod, ThisExpression } from '@babel/types';
 import { Variables, Value, NumberValue, StringValue, BooleanValue, ObjectValue, ObjectFields } from './types';
 import { objectValue, stringValue, numberValue, booleanValue, undefinedValue, nullValue } from './factories';
 import { Engine } from './engine';
@@ -14,11 +14,12 @@ export class Scope {
     
     constructor(
         readonly engine: Engine,
-        private readonly parent: Scope | null = null
+        private readonly parent: Scope | null = null,
+        private readonly thisValue: Value = undefinedValue
     ) {}
     
-    createChildScope(): Scope {
-        return new Scope(this.engine, this);
+    createChildScope(thisValue: Value = this.thisValue): Scope {
+        return new Scope(this.engine, this, thisValue);
     }
 
     evaluateStatements(block: Block): Value {
@@ -111,6 +112,8 @@ export class Scope {
                 return this.evaluateAssignmentExpression(expression);
             case 'Identifier':
                 return this.evaluateIdentifier(expression);
+            case 'ThisExpression':
+                return this.evaluateThisExpression(expression);
         }
 
         throw new NotImplementedError('unsupported expression ' + expression.type);
@@ -181,6 +184,11 @@ export class Scope {
                 return undefinedValue;
         }
     }
+
+    evaluateThisExpression(expression: ThisExpression): Value {
+        return this.thisValue;
+    }
+
     evaluateBinaryExpression(expression: BinaryExpression): Value {
         const left = this.evaluateExpression(expression.left);
         const right = this.evaluateExpression(expression.right);
@@ -299,7 +307,7 @@ export class Scope {
         return this.engine.functionValue((thisArg, argValues) => {
             let index = 0;
             
-            const childScope = this.createChildScope();
+            const childScope = this.createChildScope(thisArg);
             for(const parameter of statement.params) {
                 switch(parameter.type) {
                     case 'Identifier':
