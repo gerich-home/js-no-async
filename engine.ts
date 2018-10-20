@@ -34,11 +34,12 @@ export class Engine {
             invoke
         };
 
+        const prototype = objectValue(this.rootPrototype);
         const result = objectValue(this.functionPrototype, {
-            prototype: objectValue(this.rootPrototype)
+            prototype
         }, internalFields);
 
-        (result.ownFields.prototype.ownFields.constructor as any) = result;
+        (prototype.ownFields.constructor as any) = result;
         return result;
     }
     

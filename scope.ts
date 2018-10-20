@@ -191,7 +191,21 @@ export class Scope {
     evaluateNewExpression(expression: NewExpression): Value {
         const callee = this.evaluateExpression(expression.callee);
         
-        const thisArg = objectValue(getObjectField(callee, 'prototype'));
+        if (callee.type !== 'object') {
+            throw new NotImplementedError('new is unsupported for ' + callee.type);
+        }
+    
+        if (callee.prototype !== this.engine.functionPrototype) {
+            throw new NotImplementedError('cannot use new for non-function');
+        }
+
+        const prototype = getObjectField(callee, 'prototype');
+        
+        if (prototype.type !== 'object') {
+            throw new NotImplementedError('prototype cannot be ' + callee.type);
+        }
+
+        const thisArg = objectValue(prototype);
         const args = expression.arguments.map(arg => this.evaluateExpression(arg));
         
         const result = this.engine.executeFunction(callee, thisArg, args);
