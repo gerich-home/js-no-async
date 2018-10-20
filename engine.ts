@@ -13,7 +13,7 @@ export class Engine {
     };
 
     readonly functionPrototype = objectValue(this.rootPrototype);
-
+    
     readonly globalScope: Scope = new Scope(this);
 
     constructor() {
@@ -38,7 +38,7 @@ export class Engine {
             prototype: objectValue(this.rootPrototype)
         }, internalFields);
 
-        (result.ownFields.constructor as any) = result;
+        (result.ownFields.prototype.ownFields.constructor as any) = result;
         return result;
     }
     
