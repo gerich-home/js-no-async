@@ -1,9 +1,13 @@
-import { Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName, Block, traverse } from '@babel/types';
+import { Node, Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName, Block, traverse, ObjectMethod } from '@babel/types';
 import { Variables, Value, NumberValue, StringValue, BooleanValue, ObjectValue, ObjectFields } from './types';
 import { objectValue, stringValue, numberValue, booleanValue, undefinedValue, nullValue } from './factories';
 import { Engine } from './engine';
 import { NotImplementedError } from './notImplementedError';
 import { getObjectField } from './globals';
+
+function isFunctionNode(node: Node): boolean {
+    return node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ObjectMethod'
+}
 
 export class Scope {
     readonly variables: Variables = {};
@@ -42,12 +46,12 @@ export class Scope {
                     }
                 }
                 
-                if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression') {
+                if (isFunctionNode(node)) {
                     state.functionDepth++;
                 }
             },
             exit(node, ancestors, state) {
-                if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression') {
+                if (isFunctionNode(node)) {
                     state.functionDepth--;
                 }
             }
@@ -208,6 +212,14 @@ export class Scope {
                     const key: Identifier = property.key;
                     fields[key.name] = this.evaluateExpression(property.value);
                     break;
+                case 'ObjectMethod':
+                    const methodKey: Identifier = property.key;
+                    if (property.kind !== 'method') {
+                        throw new NotImplementedError('getters/setters are unsupported ' + property.kind);
+                    }
+
+                    fields[methodKey.name] = this.functionValue(property);
+                    break;
                 default:
                     throw new NotImplementedError('unsupported property type ' + property.type);
             }
@@ -283,7 +295,7 @@ export class Scope {
         throw new NotImplementedError('unsupported left value type ' + to.type);
     }
 
-    functionValue(statement: FunctionExpression | FunctionDeclaration) {
+    functionValue(statement: FunctionExpression | FunctionDeclaration | ObjectMethod) {
         return this.engine.functionValue((thisArg, argValues) => {
             let index = 0;
             

@@ -4,8 +4,8 @@ import { Engine } from './engine';
 const ast = parse(`
 function num(a) {
     return {
-        inc: function(b) { a = a + b; },
-        get: function() { return a; }
+        inc(b) { a = a + b; },
+        get() { return a; }
     };
 }
 
