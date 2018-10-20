@@ -9,18 +9,27 @@ function num(a) {
     };
 }
 
-var n = new num(30);
+function cnt(a) {
+    this.a = a;
+    this.inc = function(b) { this.a = this.a + b; };
+    this.get = function() { return this.a; };
+}
+
+var n = new cnt(30);
 
 var n1 = num(10);
 var n2 = num(20);
 log(n1.get());
 log(n2.get());
+log(n.get());
 {
     n1.inc(5);
     n2.inc(33);
     log(n1.get());
 }
 log(n2.get());
+n.inc(7);
+log(n.get());
 `);
 
 const globalScope = new Engine().globalScope;
