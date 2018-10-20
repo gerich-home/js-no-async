@@ -191,7 +191,7 @@ export class Scope {
     evaluateNewExpression(expression: NewExpression): Value {
         const callee = this.evaluateExpression(expression.callee);
         
-        const thisArg = objectValue(this.engine.rootPrototype);
+        const thisArg = objectValue(getObjectField(callee, 'prototype'));
         const args = expression.arguments.map(arg => this.evaluateExpression(arg));
         
         const result = this.engine.executeFunction(callee, thisArg, args);
