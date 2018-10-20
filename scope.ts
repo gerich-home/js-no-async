@@ -1,4 +1,4 @@
-import { Node, Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName, Block, traverse, ObjectMethod, ThisExpression } from '@babel/types';
+import { Node, Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName, Block, traverse, ObjectMethod, ThisExpression, BlockStatement } from '@babel/types';
 import { Variables, Value, NumberValue, StringValue, BooleanValue, ObjectValue, ObjectFields } from './types';
 import { objectValue, stringValue, numberValue, booleanValue, undefinedValue, nullValue } from './factories';
 import { Engine } from './engine';
@@ -81,6 +81,8 @@ export class Scope {
                 return this.evaluateFunctionDeclaration(statement);
             case 'ExpressionStatement':
                 return this.evaluateExpressionStatement(statement);
+            case 'BlockStatement':
+                return this.evaluateBlockStatement(statement);
             case 'ReturnStatement':
                 return this.evaluateReturnStatement(statement);
             default:
@@ -153,6 +155,14 @@ export class Scope {
         } else {
             return this.evaluateExpression(statement.argument);
         }
+    }
+
+    evaluateBlockStatement(statement: BlockStatement): null {
+        const childScope = this.createChildScope();
+        
+        childScope.evaluateStatements(statement);
+
+        return null;
     }
 
     evaluateNumericLiteral(expression: NumericLiteral): NumberValue {
