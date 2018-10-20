@@ -28,7 +28,8 @@ const globalScope = new Engine().globalScope;
 
 globalScope.evaluateStatements(ast.program);
 
-return;
-for (const variableName of Object.keys(globalScope.variables)) {
-    console.log(variableName, globalScope.variables[variableName]);
+if(false) {
+  for (const variableName of Object.keys(globalScope.variables)) {
+      console.log(variableName, globalScope.variables[variableName]);
+  }
 }
