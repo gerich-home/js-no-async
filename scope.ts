@@ -106,6 +106,8 @@ export class Scope {
                 return this.evaluateFunctionExpression(expression);
             case 'CallExpression':
                 return this.evaluateCallExpression(expression);
+            case 'NewExpression':
+                return this.evaluateNewExpression(expression);
             case 'BinaryExpression':
                 return this.evaluateBinaryExpression(expression);
             case 'MemberExpression':
@@ -186,6 +188,17 @@ export class Scope {
         return this.engine.executeFunction(callee, thisArg, args);
     }
 
+    evaluateNewExpression(expression: NewExpression): Value {
+        const callee = this.evaluateExpression(expression.callee);
+        
+        const thisArg = objectValue(this.engine.rootPrototype);
+        const args = expression.arguments.map(arg => this.evaluateExpression(arg));
+        
+        const result = this.engine.executeFunction(callee, thisArg, args);
+        
+        return result === undefinedValue ? thisArg : result;
+    }
+    
     getThisArg(callee: Expression): Value {
         switch (callee.type) {
             case 'MemberExpression':
