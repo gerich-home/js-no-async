@@ -23,11 +23,27 @@ var n2 = num(20);
 log(n1.get());
 log(n2.get());
 log(n.get());
+
+const x = 10;
+var y = 20;
+let z = 30;
+
+log(x, y, z);
+
 {
-    n1.inc(5);
-    n2.inc(33);
-    log(n1.get());
+    const x = 11;
+    var y = 22;
+    let z = 33;
+
+    log(x, y, z);
 }
+
+log(x, y, z);
+
+n1.inc(5);
+n2.inc(33);
+
+log(n1.get());
 log(n2.get());
 n.inc(7);
 log(n.get());
