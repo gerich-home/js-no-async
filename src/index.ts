@@ -48,6 +48,9 @@ log(x, y, z);
     log(x, y, z);
 }
 
+log(10 !== 20, 10 === 20, !(10 === 20), !'test', !null, -12);
+
+log(Object instanceof Function);
 log(x, y, z);
 
 n1.inc(5);

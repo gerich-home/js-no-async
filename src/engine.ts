@@ -2,32 +2,38 @@ import { nullValue, objectValue, stringValue, undefinedValue } from './factories
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { Scope } from './scope';
-import { FunctionInternalFields, ObjectValue, Value, StringValue } from './types';
+import { FunctionInternalFields, ObjectValue, Value, StringValue, Variables } from './types';
 import { parseExpression } from '@babel/parser';
 import { FunctionExpression } from '@babel/types';
+import _ from 'lodash';
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
-    readonly functionPrototype = objectValue(this.rootPrototype);
-    
-    readonly globalScope: Scope = new Scope(this);
+    readonly functionPrototype = this.objectConstructor();
+
+    readonly globals = {
+        Object: this.functionValue(this.objectConstructor.bind(this), this.rootPrototype),
+        Function: this.functionValue(this.functionConstructor.bind(this), this.functionPrototype),
+        log: this.functionValue((thisArg, values) => {
+            console.log(...values.map(value => this.toString(value)));
+            return undefinedValue;
+        })
+    };
+
+    readonly globalScope = new Scope(this);
 
     constructor() {
-        this.globalScope.variables.Object = this.functionValue(this.objectConstructor.bind(this));
-        this.globalScope.variables.Object.ownFields.prototype = this.rootPrototype;
-        this.globalScope.variables.Function = this.functionValue(this.functionConstructor.bind(this));
+        _(this.globals)
+            .forEach((global, name) => {
+                this.globalScope.variables[name] = global;    
+            });
         
         this.rootPrototype.ownFields.toString = this.functionValue(() => stringValue('[object Object]')) as any;
         this.rootPrototype.ownFields.valueOf = this.functionValue(thisArg => thisArg) as any;
-        this.rootPrototype.ownFields.constructor = this.globalScope.variables.Object as any;
-
-        this.globalScope.variables.log = this.functionValue((thisArg, values) => {
-            console.log(...values.map(value => this.toString(value)));
-            return undefinedValue;
-        });
+        this.rootPrototype.ownFields.constructor = this.globals.Object as any;
     }
 
-    objectConstructor(): Value {
+    objectConstructor(): ObjectValue {
         return objectValue(this.rootPrototype);
     }
 
@@ -48,17 +54,16 @@ export class Engine {
         }
     }
 
-    functionValue(invoke: FunctionInternalFields['invoke']): ObjectValue {
+    functionValue(invoke: FunctionInternalFields['invoke'], prototype: ObjectValue = this.objectConstructor()): ObjectValue {
         const internalFields: FunctionInternalFields = {
             invoke
         };
 
-        const prototype = objectValue(this.rootPrototype);
         const result = objectValue(this.functionPrototype, {
             prototype
         }, internalFields);
 
-        (prototype.ownFields.constructor as any) = result;
+        (result.ownFields.prototype.ownFields.constructor as any) = result;
         return result;
     }
     
@@ -79,6 +84,23 @@ export class Engine {
         }
     }
     
+    toBoolean(value: Value): boolean {
+        switch(value.type) {
+            case 'string':
+                return Boolean(value.value);
+            case 'boolean':
+                return value.value;
+            case 'number':
+                return Boolean(value.value);
+            case 'null':
+                return false;
+            case 'object':
+                return true;
+            case 'undefined':
+                return false;
+        }
+    }
+
     toNumber(value: Value): number {
         switch(value.type) {
             case 'string':

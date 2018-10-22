@@ -25,10 +25,10 @@ export type UndefinedValue = {
     readonly type: 'undefined';
 };
 
-export type ObjectValue = {
+export type ObjectValue<TObjectFields extends ObjectFields = ObjectFields, TInternalObjectFields extends InternalObjectFields = InternalObjectFields> = {
     readonly type: 'object';
-    readonly ownFields: ObjectFields;
-    readonly internalFields: InternalObjectFields;
+    readonly ownFields: TObjectFields;
+    readonly internalFields: TInternalObjectFields;
     readonly prototype: ObjectValue | NullValue;
 };
 

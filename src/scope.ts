@@ -1,4 +1,4 @@
-import { AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, JSXNamespacedName, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, traverse, VariableDeclaration } from '@babel/types';
+import { AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, JSXNamespacedName, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, traverse, VariableDeclaration, UnaryExpression } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -110,6 +110,8 @@ export class Scope {
                 return this.evaluateNewExpression(expression);
             case 'BinaryExpression':
                 return this.evaluateBinaryExpression(expression);
+            case 'UnaryExpression':
+                return this.evaluateUnaryExpression(expression);
             case 'MemberExpression':
                 return this.evaluateMemberExpression(expression);
             case 'AssignmentExpression':
@@ -226,6 +228,37 @@ export class Scope {
         return this.thisValue;
     }
 
+    evaluateUnaryExpression(expression: UnaryExpression): Value {
+        const argument = this.evaluateExpression(expression.argument);
+
+        switch (expression.operator) {
+            case '+':
+                return numberValue(this.engine.toNumber(argument));
+            case '-':
+                return numberValue(-this.engine.toNumber(argument));
+            case '!':
+                return booleanValue(!this.engine.toBoolean(argument));
+            case 'typeof':
+                return stringValue(this.typeofValue(argument));
+        }
+
+        throw new NotImplementedError('unsupported operator ' + expression.operator);
+    }
+
+    typeofValue(value: Value): Value['type'] | 'function' {
+        switch(value.type) {
+            case 'null':
+                return 'object';
+            case 'object':
+                if (value.prototype === this.engine.functionPrototype) {
+                    return 'function';
+                }
+                break;
+        }
+
+        return value.type;
+    }
+
     evaluateBinaryExpression(expression: BinaryExpression): Value {
         const left = this.evaluateExpression(expression.left);
         const right = this.evaluateExpression(expression.right);
@@ -241,31 +274,49 @@ export class Scope {
                 return numberValue(this.engine.toNumber(left) - this.engine.toNumber(right));
             case '*':
                 return numberValue(this.engine.toNumber(left) * this.engine.toNumber(right));
+            case '**':
+                return numberValue(this.engine.toNumber(left) ** this.engine.toNumber(right));
             case '/':
                 return numberValue(this.engine.toNumber(left) / this.engine.toNumber(right));
             case '===':
-                return this.strictEqual(left, right);
+                return booleanValue(this.strictEqual(left, right));
+            case '!==':
+                return booleanValue(!this.strictEqual(left, right));
+            case 'instanceof':
+                return booleanValue(this.isInstanceOf(left, right));
         }
 
         throw new NotImplementedError('unsupported operator ' + expression.operator);
     }
 
-    strictEqual(left: Value, right: Value): BooleanValue {
+    isInstanceOf(left: Value, right: Value): boolean {
+        if (right.type !== 'object' || right.prototype !== this.engine.functionPrototype) {
+            throw new NotImplementedError(`Right-hand side of 'instanceof' is not an object`);
+        }
+
+        if(left.type !== 'object') {
+            return false;
+        }
+        
+        return left.prototype === right.ownFields.prototype;
+    }
+
+    strictEqual(left: Value, right: Value): boolean {
         const type = left.type;
 
         if (type !== right.type) {
-            return booleanValue(false);
+            return false;
         }
 
         if (type === 'undefined' || type === 'null') {
-            return booleanValue(true);
+            return true;
         }
 
         if (type === 'number' || type === 'boolean' || type === 'string') {
-            return booleanValue((left as any).value === (right as any).value);
+            return (left as any).value === (right as any).value;
         }
         
-        return booleanValue(left === right);
+        return left === right;
     }
 
     evaluateObjectExpression(expression: ObjectExpression): ObjectValue {

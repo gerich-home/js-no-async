@@ -21,7 +21,7 @@ export function booleanValue(value: boolean): BooleanValue {
     };
 }
 
-export function objectValue(prototype: ObjectPrototypeValue, ownFields: ObjectFields = {}, internalFields: InternalObjectFields = {}): ObjectValue {
+export function objectValue<TObjectFields extends ObjectFields, TInternalObjectFields extends InternalObjectFields>(prototype: ObjectPrototypeValue, ownFields: TObjectFields = {} as TObjectFields, internalFields: TInternalObjectFields = {} as TInternalObjectFields): ObjectValue<TObjectFields> {
     return {
         type: 'object',
         ownFields,
