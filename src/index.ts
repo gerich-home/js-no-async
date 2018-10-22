@@ -16,6 +16,7 @@ function cnt(a) {
 cnt.prototype.inc = function(b) { this.a = this.a + b; };
 cnt.prototype.get = function() { return this.a; };
 
+var o = new Object();
 var n = new cnt(30);
 
 var n1 = num(10);

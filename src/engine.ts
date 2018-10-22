@@ -1,8 +1,8 @@
-import { Scope } from './scope';
-import { ObjectValue, Value, FunctionInternalFields } from './types';
-import { objectValue, nullValue, undefinedValue, stringValue } from './factories';
-import { NotImplementedError } from './notImplementedError';
+import { nullValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
+import { NotImplementedError } from './notImplementedError';
+import { Scope } from './scope';
+import { FunctionInternalFields, ObjectValue, Value } from './types';
 
 export class Engine {
     readonly rootPrototype: ObjectValue = {
@@ -17,11 +17,11 @@ export class Engine {
     readonly globalScope: Scope = new Scope(this);
 
     constructor() {
-        this.rootPrototype.ownFields.toString = this.functionValue(() => {
-            return stringValue('[object Object]');
-        }) as any;
-
+        this.globalScope.variables.Object = this.functionValue(() => objectValue(this.rootPrototype));
+        
+        this.rootPrototype.ownFields.toString = this.functionValue(() => stringValue('[object Object]')) as any;
         this.rootPrototype.ownFields.valueOf = this.functionValue(thisArg => thisArg) as any;
+        this.rootPrototype.ownFields.constructor = this.globalScope.variables.Object as any;
 
         this.globalScope.variables.log = this.functionValue((thisArg, values) => {
             console.log(...values.map(value => this.toString(value)));

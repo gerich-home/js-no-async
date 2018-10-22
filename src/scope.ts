@@ -1,9 +1,9 @@
-import { Node, Expression, Statement, LVal, PatternLike, Identifier, FunctionDeclaration, FunctionExpression, VariableDeclaration, ExpressionStatement, ReturnStatement, NumericLiteral, BooleanLiteral, StringLiteral, ObjectExpression, CallExpression, BinaryExpression, MemberExpression, AssignmentExpression, SpreadElement, JSXNamespacedName, Block, traverse, ObjectMethod, ThisExpression, BlockStatement, NewExpression } from '@babel/types';
-import { Variables, Value, NumberValue, StringValue, BooleanValue, ObjectValue, ObjectFields } from './types';
-import { objectValue, stringValue, numberValue, booleanValue, undefinedValue, nullValue } from './factories';
+import { AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, JSXNamespacedName, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, traverse, VariableDeclaration } from '@babel/types';
 import { Engine } from './engine';
-import { NotImplementedError } from './notImplementedError';
+import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
+import { NotImplementedError } from './notImplementedError';
+import { BooleanValue, NumberValue, ObjectFields, ObjectValue, StringValue, Value, Variables } from './types';
 
 function isFunctionNode(node: Node): boolean {
     return node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ObjectMethod'

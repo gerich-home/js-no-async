@@ -1,5 +1,5 @@
-import { Value, ObjectValue } from "./types";
 import { undefinedValue } from "./factories";
+import { ObjectValue, Value } from "./types";
 
 export function getObjectField(value: ObjectValue, fieldName: string): Value {
     if (value.ownFields.hasOwnProperty(fieldName)) {

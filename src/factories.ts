@@ -1,4 +1,4 @@
-import { NumberValue, BooleanValue, StringValue, ObjectPrototypeValue, ObjectFields, InternalObjectFields, ObjectValue, NullValue, UndefinedValue } from "./types";
+import { BooleanValue, InternalObjectFields, NullValue, NumberValue, ObjectFields, ObjectPrototypeValue, ObjectValue, StringValue, UndefinedValue } from "./types";
 
 export function numberValue(value: number): NumberValue {
     return {
