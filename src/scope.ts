@@ -243,9 +243,29 @@ export class Scope {
                 return numberValue(this.engine.toNumber(left) * this.engine.toNumber(right));
             case '/':
                 return numberValue(this.engine.toNumber(left) / this.engine.toNumber(right));
+            case '===':
+                return this.strictEqual(left, right);
         }
 
         throw new NotImplementedError('unsupported operator ' + expression.operator);
+    }
+
+    strictEqual(left: Value, right: Value): BooleanValue {
+        const type = left.type;
+
+        if (type !== right.type) {
+            return booleanValue(false);
+        }
+
+        if (type === 'undefined' || type === 'null') {
+            return booleanValue(true);
+        }
+
+        if (type === 'number' || type === 'boolean' || type === 'string') {
+            return booleanValue((left as any).value === (right as any).value);
+        }
+        
+        return booleanValue(left === right);
     }
 
     evaluateObjectExpression(expression: ObjectExpression): ObjectValue {

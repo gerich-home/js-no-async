@@ -2,22 +2,20 @@ import { nullValue, objectValue, stringValue, undefinedValue } from './factories
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { Scope } from './scope';
-import { FunctionInternalFields, ObjectValue, Value } from './types';
+import { FunctionInternalFields, ObjectValue, Value, StringValue } from './types';
+import { parseExpression } from '@babel/parser';
+import { FunctionExpression } from '@babel/types';
 
 export class Engine {
-    readonly rootPrototype: ObjectValue = {
-        type: 'object',
-        ownFields: {},
-        internalFields: {},
-        prototype: nullValue
-    };
-
+    readonly rootPrototype = objectValue(nullValue);
     readonly functionPrototype = objectValue(this.rootPrototype);
     
     readonly globalScope: Scope = new Scope(this);
 
     constructor() {
-        this.globalScope.variables.Object = this.functionValue(() => objectValue(this.rootPrototype));
+        this.globalScope.variables.Object = this.functionValue(this.objectConstructor.bind(this));
+        this.globalScope.variables.Object.ownFields.prototype = this.rootPrototype;
+        this.globalScope.variables.Function = this.functionValue(this.functionConstructor.bind(this));
         
         this.rootPrototype.ownFields.toString = this.functionValue(() => stringValue('[object Object]')) as any;
         this.rootPrototype.ownFields.valueOf = this.functionValue(thisArg => thisArg) as any;
@@ -27,6 +25,27 @@ export class Engine {
             console.log(...values.map(value => this.toString(value)));
             return undefinedValue;
         });
+    }
+
+    objectConstructor(): Value {
+        return objectValue(this.rootPrototype);
+    }
+
+    functionConstructor(thisArg: Value, values: Value[]): Value {
+        if (!values.every(x => x.type === 'string')) {
+            throw new NotImplementedError();
+        }
+
+        if (values.length > 0) {                
+            const argNames = values.slice(0, -1) as StringValue[];
+            const code = values.slice(-1)[0] as StringValue;
+
+            const functionExpression = parseExpression(`function(${ argNames.map(a => a.value).join(',') }) { ${code.value} }`);
+            
+            return this.globalScope.functionValue(functionExpression as FunctionExpression);
+        } else {
+            return this.functionValue(() => undefinedValue);
+        }
     }
 
     functionValue(invoke: FunctionInternalFields['invoke']): ObjectValue {

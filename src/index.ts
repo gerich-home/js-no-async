@@ -17,7 +17,16 @@ cnt.prototype.inc = function(b) { this.a = this.a + b; };
 cnt.prototype.get = function() { return this.a; };
 
 var o = new Object();
+Object.prototype.xxx = 99;
+log(o.xxx);
+log(log.xxx);
 var n = new cnt(30);
+var f = new Function('a', 'return "TEST" + a + "TEST";');
+log('Function.prototype.constructor === Function:', Function.prototype.constructor === Function);
+log('Object.prototype.constructor === Function:', Object.prototype.constructor === Function);
+log('Object.prototype.constructor === Object:', Object.prototype.constructor === Object);
+log(f('foo'));
+log(f('bar'));
 
 var n1 = num(10);
 var n2 = num(20);
