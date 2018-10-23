@@ -1,7 +1,6 @@
-import { parse } from '@babel/parser';
 import { Engine } from './engine';
 
-const ast = parse(`
+const code = `
 function num(a) {
     return {
         inc(b) { a = a + b; },
@@ -51,6 +50,7 @@ log(x, y, z);
 log(10 !== 20, 10 === 20, !(10 === 20), !'test', !null, -12);
 
 log(Object instanceof Function);
+log(typeof 10, typeof 'aaa', typeof null);
 log(x, y, z);
 
 n1.inc(5);
@@ -60,15 +60,8 @@ log(n1.get());
 log(n2.get());
 n.inc(7);
 log(n.get());
-`);
+`;
 
-const globalScope = new Engine().globalScope;
+const engine = new Engine();
 
-
-globalScope.evaluateStatements(ast.program);
-
-if(false) {
-  for (const variableName of Object.keys(globalScope.variables)) {
-      console.log(variableName, globalScope.variables[variableName]);
-  }
-}
+engine.runCode(code);

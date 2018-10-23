@@ -1,11 +1,11 @@
+import { parse, parseExpression } from '@babel/parser';
+import { FunctionExpression } from '@babel/types';
+import _ from 'lodash';
 import { nullValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { Scope } from './scope';
-import { FunctionInternalFields, ObjectValue, Value, StringValue, Variables } from './types';
-import { parseExpression } from '@babel/parser';
-import { FunctionExpression } from '@babel/types';
-import _ from 'lodash';
+import { FunctionInternalFields, ObjectValue, StringValue, Value } from './types';
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
@@ -31,6 +31,11 @@ export class Engine {
         this.rootPrototype.ownFields.toString = this.functionValue(() => stringValue('[object Object]')) as any;
         this.rootPrototype.ownFields.valueOf = this.functionValue(thisArg => thisArg) as any;
         this.rootPrototype.ownFields.constructor = this.globals.Object as any;
+    }
+
+    runCode(code: string): void {
+        const ast = parse(code);
+        this.globalScope.evaluateStatements(ast.program);
     }
 
     objectConstructor(): ObjectValue {
