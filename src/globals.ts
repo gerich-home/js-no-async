@@ -2,7 +2,7 @@ import { undefinedValue } from "./factories";
 import { ObjectValue, Value } from "./types";
 
 export function getObjectField(value: ObjectValue, fieldName: string): Value {
-    if (value.ownFields.hasOwnProperty(fieldName)) {
+    if (Object.prototype.hasOwnProperty.call(value.ownFields, fieldName)) {
         return value.ownFields[fieldName];
     }
 

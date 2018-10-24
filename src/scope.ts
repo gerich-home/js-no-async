@@ -1,4 +1,4 @@
-import { AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, JSXNamespacedName, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, traverse, VariableDeclaration, UnaryExpression } from '@babel/types';
+import { AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, traverse, UnaryExpression, VariableDeclaration } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -83,6 +83,8 @@ export class Scope {
                 return this.evaluateExpressionStatement(statement);
             case 'BlockStatement':
                 return this.evaluateBlockStatement(statement);
+            case 'IfStatement':
+                return this.evaluateIfStatement(statement);
             case 'ReturnStatement':
                 return this.evaluateReturnStatement(statement);
             default:
@@ -165,6 +167,18 @@ export class Scope {
         const childScope = this.createChildScope();
         
         childScope.evaluateStatements(statement);
+
+        return null;
+    }
+
+    evaluateIfStatement(statement: IfStatement): null {
+        const test = this.evaluateExpression(statement.test);
+
+        if (this.engine.toBoolean(test)) {
+            this.evaluateStatement(statement.consequent);
+        } else if(statement.alternate !== null) {
+            this.evaluateStatement(statement.alternate);
+        }
 
         return null;
     }

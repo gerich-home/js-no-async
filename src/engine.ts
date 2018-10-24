@@ -1,7 +1,6 @@
 import { parse, parseExpression } from '@babel/parser';
 import { FunctionExpression } from '@babel/types';
-import _ from 'lodash';
-import { nullValue, objectValue, stringValue, undefinedValue } from './factories';
+import { booleanValue, nullValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { Scope } from './scope';
@@ -23,14 +22,15 @@ export class Engine {
     readonly globalScope = new Scope(this);
 
     constructor() {
-        _(this.globals)
-            .forEach((global, name) => {
-                this.globalScope.variables[name] = global;    
+        Object.keys(this.globals)
+            .forEach((name) => {
+                this.globalScope.variables[name] = (this.globals as any)[name];
             });
         
         this.rootPrototype.ownFields.toString = this.functionValue(() => stringValue('[object Object]')) as any;
         this.rootPrototype.ownFields.valueOf = this.functionValue(thisArg => thisArg) as any;
         this.rootPrototype.ownFields.constructor = this.globals.Object as any;
+        this.rootPrototype.ownFields.hasOwnProperty = this.functionValue((thisArg, args) => booleanValue(Object.prototype.hasOwnProperty.call((thisArg as ObjectValue).ownFields, this.toString(args[0])))) as any;
     }
 
     runCode(code: string): void {
