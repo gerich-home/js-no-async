@@ -91,7 +91,7 @@ export class Scope {
             case 'ThrowStatement':
                 return this.evaluateThrowStatement(statement);
             case 'TryStatement':
-                return this.evaluateCatchStatement(statement);
+                return this.evaluateTryStatement(statement);
             default:
                 throw new NotImplementedError('not supported statement type ' + statement.type);
         }
