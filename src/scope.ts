@@ -1,4 +1,4 @@
-import { AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, UnaryExpression, VariableDeclaration, TryStatement } from '@babel/types';
+import { AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -19,7 +19,7 @@ export class Scope {
         private readonly thisValue: Value = undefinedValue
     ) {}
     
-    createChildScope(thisValue: Value = this.thisValue): Scope {
+    createChildScope(thisValue: Value): Scope {
         return new Scope(this.engine, this, thisValue);
     }
 
@@ -174,16 +174,34 @@ export class Scope {
         }
     }
 
-    evaluateTryStatement(statement: TryStatement): null {
+    evaluateTryStatement(statement: TryStatement): Value | null {
+        let trueError = false;
+        
+        try {
+            this.evaluateBlockStatement(statement.block);
+        } catch(err) {
+            if(err instanceof RuntimeError && statement.handler !== null) {
+                return this.evaluateBlockStatement(statement.handler.body);
+            } else {
+                trueError = true;
+                throw err;
+            }
+        } finally {
+            if (!trueError && statement.finalizer !== null) {
+                const result = this.evaluateBlockStatement(statement.finalizer);
+                if (result !== null) {
+                    return result;
+                }
+            }
+        }
+
         return null;
     }
 
-    evaluateBlockStatement(statement: BlockStatement): null {
-        const childScope = this.createChildScope();
+    evaluateBlockStatement(statement: BlockStatement): Value | null {
+        const childScope = this.createChildScope(this.thisValue);
         
-        childScope.evaluateStatements(statement);
-
-        return null;
+        return childScope.evaluateStatements(statement);
     }
 
     evaluateIfStatement(statement: IfStatement): null {
@@ -474,7 +492,7 @@ export class Scope {
                 index++;
             }
 
-            return childScope.evaluateStatements(statement.body);
+            return childScope.evaluateBlockStatement(statement.body) || undefinedValue;
         });
     }
 }
