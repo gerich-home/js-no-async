@@ -1,4 +1,4 @@
-import { AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, UnaryExpression, VariableDeclaration } from '@babel/types';
+import { AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, UnaryExpression, VariableDeclaration, TryStatement } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -90,6 +90,8 @@ export class Scope {
                 return this.evaluateReturnStatement(statement);
             case 'ThrowStatement':
                 return this.evaluateThrowStatement(statement);
+            case 'TryStatement':
+                return this.evaluateCatchStatement(statement);
             default:
                 throw new NotImplementedError('not supported statement type ' + statement.type);
         }
@@ -170,6 +172,10 @@ export class Scope {
         } else {
             return this.evaluateExpression(statement.argument);
         }
+    }
+
+    evaluateTryStatement(statement: TryStatement): null {
+        return null;
     }
 
     evaluateBlockStatement(statement: BlockStatement): null {
