@@ -68,7 +68,7 @@ export class Engine {
             prototype
         }, internalFields);
 
-        (result.ownFields.prototype.ownFields.constructor as any) = result;
+        ((result.ownFields.prototype as ObjectValue).ownFields.constructor as any) = result;
         return result;
     }
     

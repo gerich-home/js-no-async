@@ -1,8 +1,9 @@
-import { AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, traverse, UnaryExpression, VariableDeclaration } from '@babel/types';
+import { AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, UnaryExpression, VariableDeclaration } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
+import { RuntimeError } from './runtimeError';
 import { BooleanValue, NumberValue, ObjectFields, ObjectValue, StringValue, Value, Variables } from './types';
 
 function isFunctionNode(node: Node): boolean {
@@ -87,6 +88,8 @@ export class Scope {
                 return this.evaluateIfStatement(statement);
             case 'ReturnStatement':
                 return this.evaluateReturnStatement(statement);
+            case 'ThrowStatement':
+                return this.evaluateThrowStatement(statement);
             default:
                 throw new NotImplementedError('not supported statement type ' + statement.type);
         }
@@ -112,6 +115,8 @@ export class Scope {
                 return this.evaluateNewExpression(expression);
             case 'BinaryExpression':
                 return this.evaluateBinaryExpression(expression);
+            case 'LogicalExpression':
+                return this.evaluateLogicalExpression(expression);
             case 'UnaryExpression':
                 return this.evaluateUnaryExpression(expression);
             case 'MemberExpression':
@@ -153,6 +158,10 @@ export class Scope {
         this.evaluateExpression(statement.expression);
 
         return null;
+    }
+
+    evaluateThrowStatement(statement: ThrowStatement): null {
+        throw new RuntimeError(statement, this.evaluateExpression(statement.argument));
     }
 
     evaluateReturnStatement(statement: ReturnStatement): Value {
@@ -298,6 +307,20 @@ export class Scope {
                 return booleanValue(!this.strictEqual(left, right));
             case 'instanceof':
                 return booleanValue(this.isInstanceOf(left, right));
+        }
+
+        throw new NotImplementedError('unsupported operator ' + expression.operator);
+    }
+
+    evaluateLogicalExpression(expression: LogicalExpression): Value {
+        const left = this.evaluateExpression(expression.left);
+        const right = () => this.evaluateExpression(expression.right);
+
+        switch (expression.operator) {
+            case '||':
+                return this.engine.toBoolean(left) ? left : right();
+            case '&&':
+                return this.engine.toBoolean(left) ? right() : left;
         }
 
         throw new NotImplementedError('unsupported operator ' + expression.operator);
