@@ -22,7 +22,7 @@ export class Scope {
         return new Scope(this.engine, this, thisValue, parameters);
     }
 
-    evaluateStatements(block: Block): Value {
+    evaluateStatements(block: Block): Value | null {
         const state = {
             functionDepth: 0,
             vars: [] as string[]
@@ -70,7 +70,7 @@ export class Scope {
             }
         }
 
-        return undefinedValue;
+        return null;
     }
 
     evaluateStatement(statement: Statement): Value | null {
@@ -189,10 +189,7 @@ export class Scope {
             }
         } finally {
             if (!trueError && statement.finalizer !== null) {
-                const result = this.evaluateBlockStatement(statement.finalizer, this.thisValue, {});
-                if (result !== null) {
-                    return result;
-                }
+                return this.evaluateBlockStatement(statement.finalizer, this.thisValue, {});
             }
         }
 
