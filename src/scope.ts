@@ -11,16 +11,15 @@ function isFunctionNode(node: Node): boolean {
 }
 
 export class Scope {
-    readonly variables: Variables = {};
-    
     constructor(
         readonly engine: Engine,
         private readonly parent: Scope | null = null,
-        private readonly thisValue: Value = undefinedValue
+        private readonly thisValue: Value = undefinedValue,
+        readonly variables: Variables = {}
     ) {}
     
-    createChildScope(thisValue: Value): Scope {
-        return new Scope(this.engine, this, thisValue);
+    createChildScope(thisValue: Value, parameters: Variables): Scope {
+        return new Scope(this.engine, this, thisValue, parameters);
     }
 
     evaluateStatements(block: Block): Value {
@@ -83,7 +82,7 @@ export class Scope {
             case 'ExpressionStatement':
                 return this.evaluateExpressionStatement(statement);
             case 'BlockStatement':
-                return this.evaluateBlockStatement(statement);
+                return this.evaluateBlockStatement(statement, this.thisValue, {});
             case 'IfStatement':
                 return this.evaluateIfStatement(statement);
             case 'ReturnStatement':
@@ -178,17 +177,19 @@ export class Scope {
         let trueError = false;
         
         try {
-            this.evaluateBlockStatement(statement.block);
+            this.evaluateBlockStatement(statement.block, this.thisValue, {});
         } catch(err) {
             if(err instanceof RuntimeError && statement.handler !== null) {
-                return this.evaluateBlockStatement(statement.handler.body);
+                return this.evaluateBlockStatement(statement.handler.body, this.thisValue, statement.handler.param === null ? {} : {
+                    [statement.handler.param.name]: err.thrownValue
+                });
             } else {
                 trueError = true;
                 throw err;
             }
         } finally {
             if (!trueError && statement.finalizer !== null) {
-                const result = this.evaluateBlockStatement(statement.finalizer);
+                const result = this.evaluateBlockStatement(statement.finalizer, this.thisValue, {});
                 if (result !== null) {
                     return result;
                 }
@@ -198,8 +199,8 @@ export class Scope {
         return null;
     }
 
-    evaluateBlockStatement(statement: BlockStatement): Value | null {
-        const childScope = this.createChildScope(this.thisValue);
+    evaluateBlockStatement(statement: BlockStatement, thisArg: Value, parameters: Variables): Value | null {
+        const childScope = this.createChildScope(thisArg, parameters);
         
         return childScope.evaluateStatements(statement);
     }
@@ -476,14 +477,15 @@ export class Scope {
         return this.engine.functionValue((thisArg, argValues) => {
             let index = 0;
             
-            const childScope = this.createChildScope(thisArg);
+            const variables: Variables = {};
+            
             for(const parameter of statement.params) {
                 switch(parameter.type) {
                     case 'Identifier':
                         const argumentValue = index < argValues.length ?
                             argValues[index] :
                             undefinedValue;
-                        childScope.variables[parameter.name] = argumentValue;
+                        variables[parameter.name] = argumentValue;
                     break;
                     default:
                         throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported');
@@ -492,7 +494,7 @@ export class Scope {
                 index++;
             }
 
-            return childScope.evaluateBlockStatement(statement.body) || undefinedValue;
+            return this.evaluateBlockStatement(statement.body, thisArg, variables) || undefinedValue;
         });
     }
 }
