@@ -41,7 +41,7 @@ async function run() {
             [harnessFile.harnessFileName.replace('test262/harness/', '')]: harnessFile.code
         }), {});
 
-    const files = await globAsync('test262/test/harness/assert*.js');
+    const files = await globAsync('test262/test/harness/*.js');
     const counts = {
         passed: 0,
         failed: 0
