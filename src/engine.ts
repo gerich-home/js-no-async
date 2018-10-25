@@ -35,7 +35,8 @@ export class Engine {
 
     runCode(code: string): void {
         const ast = parse(code);
-        this.globalScope.evaluateStatements(ast.program);
+        
+        this.globalScope.evaluateProgram(ast.program);
     }
 
     objectConstructor(): ObjectValue {
