@@ -80,7 +80,7 @@ async function run() {
             
             if (config.negative) {
                 console.log(`+ PASS`);
-                counts.passes++;
+                counts.passed++;
             } else {
                 console.log(`- FAILED`);
                 counts.failed++;
