@@ -63,17 +63,28 @@ async function run() {
                     engine.runCode(allHarnessCode[include]);
                 });
             engine.runCode(code);
-
-            console.log(`+ PASS`);
-            counts.passed++;
+        
+            if (config.negative) {
+                console.log(`- FAILED`);
+                counts.failed++;
+            } else {
+                console.log(`+ PASS`);
+                counts.passed++;
+            }
         } catch(e) {
             if (e instanceof RuntimeError) {
                 console.error('Runtime error', e.statement.loc && e.statement.loc.start.line + ':' + e.statement.loc.start.column);
             } else {
                 console.error('Engine error', e);
             }
-            console.log(`- FAILED`);
-            counts.failed++;
+            
+            if (config.negative) {
+                console.log(`+ PASS`);
+                counts.passes++;
+            } else {
+                console.log(`- FAILED`);
+                counts.failed++;
+            }
         }
     }
 
