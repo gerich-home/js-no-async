@@ -8,7 +8,7 @@ const testCodePath = path.resolve(__dirname, '../testCode');
 fs.readdirSync(testCodePath).forEach(file => {
     console.log(`Running code: ${file}`);
 
-    const code = fs.readFileSync(path.resolve(__dirname, `../testCode/${file}`), 'UTF8');
+    const code = fs.readFileSync(path.join(testCodePath, file), 'UTF8');
 
     const engine = new Engine();
 
