@@ -1,5 +1,5 @@
 import { parse, parseExpression } from '@babel/parser';
-import { FunctionExpression } from '@babel/types';
+import { File, FunctionExpression } from '@babel/types';
 import { booleanValue, nullValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
@@ -33,9 +33,13 @@ export class Engine {
         this.rootPrototype.ownFields.hasOwnProperty = this.functionValue((thisArg, args) => booleanValue(Object.prototype.hasOwnProperty.call((thisArg as ObjectValue).ownFields, this.toString(args[0])))) as any;
     }
 
-    runCode(code: string): void {
+    runGlobalCode(code: string): void {
         const ast = parse(code);
         
+        this.runGlobalCodeAst(ast);
+    }
+
+    runGlobalCodeAst(ast: File): void {
         this.globalScope.evaluateProgram(ast.program);
     }
 

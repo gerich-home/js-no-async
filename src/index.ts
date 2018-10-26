@@ -1,3 +1,4 @@
+import { parse } from '@babel/parser';
 import fs from 'fs';
 import glob from 'glob';
 import yaml from 'js-yaml';
@@ -31,7 +32,7 @@ async function run() {
     const allHarnessCodeFiles = await Promise.all(harnessFiles.map(async harnessFileName => {
         return {
             harnessFileName,
-            code: await readFileAsync(harnessFileName)
+            code: parse(await readFileAsync(harnessFileName))
         };
     }));
 
@@ -56,13 +57,13 @@ async function run() {
         const engine = new Engine();
 
         try {
-            engine.runCode(allHarnessCode['assert.js']);
-            engine.runCode(allHarnessCode['sta.js']);
+            engine.runGlobalCodeAst(allHarnessCode['assert.js']);
+            engine.runGlobalCodeAst(allHarnessCode['sta.js']);
             (config.includes || [])
                 .forEach((include: string) => {
-                    engine.runCode(allHarnessCode[include]);
+                    engine.runGlobalCodeAst(allHarnessCode[include]);
                 });
-            engine.runCode(code);
+            engine.runGlobalCode(code);
         
             if (config.negative) {
                 console.log(`- FAILED`);
