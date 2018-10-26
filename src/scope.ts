@@ -1,4 +1,4 @@
-import { AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, Program, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration } from '@babel/types';
+import { ArrayExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, Program, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -112,6 +112,8 @@ export class Scope {
                 return nullValue;
             case 'ObjectExpression':
                 return this.evaluateObjectExpression(expression);
+            case 'ArrayExpression':
+                return this.evaluateArrayExpression(expression);
             case 'FunctionExpression':
                 return this.evaluateFunctionExpression(expression);
             case 'CallExpression':
@@ -409,6 +411,18 @@ export class Scope {
         }
 
         return objectValue(this.engine.rootPrototype, fields);
+    }
+
+    evaluateArrayExpression(expression: ArrayExpression): Value {
+        const array = objectValue(this.engine.globals.Array.prototype);
+        array.ownFields.length = numberValue(expression.elements.length);
+        
+        expression.elements.forEach((value, index) => {
+            array.ownFields[index] = value === null ? undefinedValue : this.evaluateExpression(value);
+        });
+
+        array.ownFields.length = numberValue(expression.elements.length);
+        return array;
     }
 
     evaluateFunctionExpression(expression: FunctionExpression): Value {

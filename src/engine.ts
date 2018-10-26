@@ -13,11 +13,12 @@ export class Engine {
     readonly globals = {
         Object: this.functionValue(this.objectConstructor.bind(this), this.rootPrototype),
         Function: this.functionValue(this.functionConstructor.bind(this), this.functionPrototype),
+        Array: this.functionValue(this.arrayConstructor.bind(this)),
+        Symbol: this.functionValue(this.symbolConstructor.bind(this)),
         log: this.functionValue((thisArg, values) => {
             console.log(...values.map(value => this.toString(value)));
             return undefinedValue;
-        }),
-        Symbol: this.functionValue(this.symbolConstructor.bind(this), this.rootPrototype)
+        })
     };
 
     readonly globalScope = new Scope(this);
@@ -61,6 +62,10 @@ export class Engine {
 
     objectConstructor(): ObjectValue {
         return objectValue(this.rootPrototype);
+    }
+
+    arrayConstructor(): UndefinedValue {
+        return undefinedValue;
     }
 
     symbolConstructor(): UndefinedValue {
