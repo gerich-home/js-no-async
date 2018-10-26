@@ -4,7 +4,7 @@ import { booleanValue, nullValue, objectValue, stringValue, undefinedValue } fro
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { Scope } from './scope';
-import { FunctionInternalFields, ObjectValue, StringValue, Value } from './types';
+import { FunctionInternalFields, ObjectValue, StringValue, UndefinedValue, Value } from './types';
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
@@ -16,7 +16,8 @@ export class Engine {
         log: this.functionValue((thisArg, values) => {
             console.log(...values.map(value => this.toString(value)));
             return undefinedValue;
-        })
+        }),
+        Symbol: this.functionValue(this.symbolConstructor.bind(this), this.rootPrototype)
     };
 
     readonly globalScope = new Scope(this);
@@ -31,6 +32,21 @@ export class Engine {
         this.rootPrototype.ownFields.valueOf = this.functionValue(thisArg => thisArg) as any;
         this.rootPrototype.ownFields.constructor = this.globals.Object as any;
         this.rootPrototype.ownFields.hasOwnProperty = this.functionValue((thisArg, args) => booleanValue(Object.prototype.hasOwnProperty.call((thisArg as ObjectValue).ownFields, this.toString(args[0])))) as any;
+        this.globals.Object.ownFields.defineProperty = this.functionValue((thisArg, args) => {
+            const obj = args[0];
+            if (obj.type !== 'object') {
+                throw new NotImplementedError('defineProperty should be called for object value');
+            }
+
+            const descriptor = args[2];
+            if (descriptor.type !== 'object') {
+                throw new NotImplementedError('defineProperty descriptor arg should be object value');
+            }
+
+            obj.ownFields[this.toString(args[1])] = descriptor.ownFields.value;
+
+            return undefinedValue;
+        });
     }
 
     runGlobalCode(code: string): void {
@@ -45,6 +61,10 @@ export class Engine {
 
     objectConstructor(): ObjectValue {
         return objectValue(this.rootPrototype);
+    }
+
+    symbolConstructor(): UndefinedValue {
+        return undefinedValue;
     }
 
     functionConstructor(thisArg: Value, values: Value[]): Value {

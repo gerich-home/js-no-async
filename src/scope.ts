@@ -181,7 +181,7 @@ export class Scope {
         let trueError = false;
         
         try {
-            this.evaluateBlockStatement(statement.block, this.thisValue, {});
+            return this.evaluateBlockStatement(statement.block, this.thisValue, {});
         } catch(err) {
             if(err instanceof RuntimeError && statement.handler !== null) {
                 return this.evaluateBlockStatement(statement.handler.body, this.thisValue, statement.handler.param === null ? {} : {
@@ -206,13 +206,13 @@ export class Scope {
         return childScope.evaluateStatements(statement);
     }
 
-    evaluateIfStatement(statement: IfStatement): null {
+    evaluateIfStatement(statement: IfStatement): Value | null {
         const test = this.evaluateExpression(statement.test);
 
         if (this.engine.toBoolean(test)) {
-            this.evaluateStatement(statement.consequent);
+            return this.evaluateStatement(statement.consequent);
         } else if(statement.alternate !== null) {
-            this.evaluateStatement(statement.alternate);
+            return this.evaluateStatement(statement.alternate);
         }
 
         return null;
@@ -331,6 +331,10 @@ export class Scope {
                 return booleanValue(this.strictEqual(left, right));
             case '!==':
                 return booleanValue(!this.strictEqual(left, right));
+            case '>':
+                return booleanValue(this.engine.toNumber(left) > this.engine.toNumber(right));
+            case '<':
+                return booleanValue(this.engine.toNumber(left) < this.engine.toNumber(right));
             case 'instanceof':
                 return booleanValue(this.isInstanceOf(left, right));
         }
@@ -480,6 +484,11 @@ export class Scope {
             
             const variables: Variables = {};
             
+            const args = this.engine.objectConstructor();
+            args.ownFields.length = numberValue(argValues.length);
+
+            variables.arguments = args;
+
             for(const parameter of statement.params) {
                 switch(parameter.type) {
                     case 'Identifier':

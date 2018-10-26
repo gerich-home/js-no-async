@@ -74,7 +74,13 @@ async function run() {
             }
         } catch(e) {
             if (e instanceof RuntimeError) {
-                console.error('Runtime error', e.statement.loc && e.statement.loc.start.line + ':' + e.statement.loc.start.column);
+                let message = 'WAS NOT ABLE TO GET ERROR MESSAGE';
+
+                try {
+                    message = engine.toString(e.thrownValue);
+                } catch {}
+
+                console.error('Runtime error', message, e.statement.loc && e.statement.loc.start.line + ':' + e.statement.loc.start.column);
             } else {
                 console.error('Engine error', e);
             }
