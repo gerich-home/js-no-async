@@ -23,10 +23,11 @@ export class Scope {
     }
 
     evaluateProgram(program: Program): void {
+        this.hoistVars(program);
         this.evaluateStatements(program);
     }
 
-    evaluateStatements(block: Block): Value | null {
+    getHoistedVars(block: Block): string[] {
         const state = {
             functionDepth: 0,
             vars: [] as string[]
@@ -62,10 +63,18 @@ export class Scope {
             }
         }, state);
 
-        for (const varName of state.vars) {
+        return state.vars;
+    }
+
+    hoistVars(block: Block) {
+        const hoistedVars = this.getHoistedVars(block);
+
+        for (const varName of hoistedVars) {
             this.variables[varName] = undefinedValue;
         }
+    }
 
+    evaluateStatements(block: Block): Value | null {
         for (const statement of block.body) {
             const result = this.evaluateStatement(statement);
 
@@ -518,7 +527,10 @@ export class Scope {
                 index++;
             }
 
-            return this.evaluateBlockStatement(statement.body, thisArg, variables) || undefinedValue;
+            const childScope = this.createChildScope(thisArg, variables);
+        
+            childScope.hoistVars(statement.body);
+            return childScope.evaluateStatements(statement.body) || undefinedValue;
         });
     }
 }
