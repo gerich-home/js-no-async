@@ -16,7 +16,7 @@ export function getObjectField(value: ObjectValue, fieldName: string): Value {
 }
 
 export function formatMessage(astNode: Node, scope: Scope): string {
-    if (scope.file === null || astNode.loc === null) {
+    if (astNode.loc === null) {
         return '';
     }
 
@@ -24,7 +24,7 @@ export function formatMessage(astNode: Node, scope: Scope): string {
     const location = `${start.line}:${start.column}`;
     const sourceCode = scope.sourceCode;
 
-    if (sourceFile == null || astNode.start === null || astNode.end === null) {
+    if (sourceCode == null || astNode.start === null || astNode.end === null) {
         return ` at ${location}`;
     }
 
