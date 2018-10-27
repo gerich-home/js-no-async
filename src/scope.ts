@@ -214,7 +214,7 @@ export class Scope {
     }
 
     evaluateBlockStatement(statement: BlockStatement, thisArg: Value, parameters: Variables): Value | null {
-        const childScope = this.createChildScope(this.program, thisArg, parameters);
+        const childScope = this.createChildScope(this.sourceCode, thisArg, parameters);
         
         return childScope.evaluateStatements(statement);
     }
@@ -529,7 +529,7 @@ export class Scope {
                 index++;
             }
 
-            const childScope = this.createChildScope(this.program, thisArg, variables);
+            const childScope = this.createChildScope(this.sourceCode, thisArg, variables);
         
             childScope.hoistVars(statement.body);
             return childScope.evaluateStatements(statement.body) || undefinedValue;
