@@ -29,9 +29,14 @@ async function run() {
     const harnessFiles = await globAsync('test262/harness/*.js');
 
     const allHarnessCodeFiles = await Promise.all(harnessFiles.map(async harnessFileName => {
+        const sourceCode = await readFileAsync(harnessFileName);
+        
         return {
             harnessFileName,
-            code: parse(await readFileAsync(harnessFileName))
+            code: {
+                sourceCode,
+                file: parse(sourceCode)
+            }
         };
     }));
 
