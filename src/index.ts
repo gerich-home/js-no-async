@@ -3,7 +3,6 @@ import fs from 'fs';
 import glob from 'glob';
 import yaml from 'js-yaml';
 import { Engine } from './engine';
-import { RuntimeError } from './runtimeError';
 
 run();
 
@@ -66,6 +65,7 @@ async function run() {
             engine.runGlobalCode(code);
         
             if (config.negative) {
+                console.log('Unexpected positive result');
                 console.log(`- FAILED`);
                 counts.failed++;
             } else {
@@ -73,22 +73,11 @@ async function run() {
                 counts.passed++;
             }
         } catch(e) {
-            if (e instanceof RuntimeError) {
-                let message = 'WAS NOT ABLE TO GET ERROR MESSAGE';
-
-                try {
-                    message = engine.toString(e.thrownValue);
-                } catch {}
-
-                console.error('Runtime error', message, e.statement.loc && e.statement.loc.start.line + ':' + e.statement.loc.start.column);
-            } else {
-                console.error('Engine error', e);
-            }
-            
             if (config.negative) {
                 console.log(`+ PASS`);
                 counts.passed++;
             } else {
+                console.log('Engine error', e);
                 console.log(`- FAILED`);
                 counts.failed++;
             }

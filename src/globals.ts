@@ -1,4 +1,6 @@
+import { Node } from "@babel/types";
 import { undefinedValue } from "./factories";
+import { Scope } from "./scope";
 import { ObjectValue, Value } from "./types";
 
 export function getObjectField(value: ObjectValue, fieldName: string): Value {
@@ -11,4 +13,20 @@ export function getObjectField(value: ObjectValue, fieldName: string): Value {
     }
 
     return getObjectField(value.prototype, fieldName);
+}
+
+export function formatMessage(astNode: Node, scope: Scope): string {
+    if (scope.program === null || astNode.loc === null) {
+        return '';
+    }
+
+    const start = astNode.loc.start;
+    const location = `${start.line}:${start.column}`;
+    const sourceFile = scope.program.sourceFile;
+
+    if (sourceFile == null || astNode.start === null || astNode.end === null) {
+        return ` at ${location}`;
+    }
+
+    return ` at ${location} (${sourceFile.slice(astNode.start, astNode.end)})`;
 }
