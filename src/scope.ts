@@ -1,4 +1,4 @@
-import { ArrayExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, Program, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration } from '@babel/types';
+import { File, ArrayExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, Program, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -14,19 +14,19 @@ export class Scope {
     constructor(
         readonly engine: Engine,
         readonly parent: Scope | null,
-        readonly sourceCode: string | null,
+        readonly file: File | null,
         readonly thisValue: Value,
         readonly variables: Variables
     ) {}
     
-    createChildScope(sourceCode: string | null, thisValue: Value, parameters: Variables): Scope {
+    createChildScope(file: File | null, thisValue: Value, parameters: Variables): Scope {
         return new Scope(this.engine, this, sourceCode, thisValue, parameters);
     }
 
-    evaluateProgram(program: Program, sourceCode: string): void {
-        this.hoistVars(program);
-        const programScope = this.createChildScope(sourceCode, this.thisValue, {});
-        programScope.evaluateStatements(program);
+    evaluateProgram(file: File): void {
+        this.hoistVars(file.program);
+        const programScope = this.createChildScope(file, this.thisValue, {});
+        programScope.evaluateStatements(file.program);
     }
 
     getHoistedVars(block: Block): string[] {
