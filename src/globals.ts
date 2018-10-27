@@ -16,17 +16,17 @@ export function getObjectField(value: ObjectValue, fieldName: string): Value {
 }
 
 export function formatMessage(astNode: Node, scope: Scope): string {
-    if (scope.program === null || astNode.loc === null) {
+    if (scope.file === null || astNode.loc === null) {
         return '';
     }
 
     const start = astNode.loc.start;
     const location = `${start.line}:${start.column}`;
-    const sourceFile = scope.program.sourceFile;
+    const sourceCode = scope.sourceCode;
 
     if (sourceFile == null || astNode.start === null || astNode.end === null) {
-        return ` at ${location} ${astNode.start} ${astNode.end} ${Object.keys(scope.program).map(k=>k+':'+(scope.program as any)[k])}`;
+        return ` at ${location}`;
     }
 
-    return ` at ${location} (${sourceFile.slice(astNode.start, astNode.end)})`;
+    return ` at ${location} (${sourceCode.slice(astNode.start, astNode.end)})`;
 }
