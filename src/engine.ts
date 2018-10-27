@@ -6,6 +6,11 @@ import { NotImplementedError } from './notImplementedError';
 import { Scope } from './scope';
 import { FunctionInternalFields, ObjectValue, StringValue, UndefinedValue, Value } from './types';
 
+type ParsedScript = {
+    file: File;
+    sourceCode: string;
+};
+
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
     readonly functionPrototype = this.objectConstructor();
@@ -53,11 +58,14 @@ export class Engine {
     runGlobalCode(sourceCode: string): void {
         const file = parse(sourceCode);
         
-        this.runGlobalCodeAst(file, sourceCode);
+        this.runGlobalCodeAst({
+            file,
+            sourceCode
+        });
     }
 
-    runGlobalCodeAst(file: File, sourceCode: string): void {
-        this.globalScope.evaluateProgram(file, sourceCode);
+    runGlobalCodeAst(script: ParsedScript): void {
+        this.globalScope.evaluateProgram(script.file, script.sourceCode);
     }
 
     objectConstructor(): ObjectValue {
