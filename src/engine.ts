@@ -57,7 +57,7 @@ export class Engine {
     }
 
     runGlobalCodeAst(ast: File): void {
-        this.globalScope.evaluateProgram(ast.program);
+        this.globalScope.evaluateProgram(ast);
     }
 
     objectConstructor(): ObjectValue {
