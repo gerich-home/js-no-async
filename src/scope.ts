@@ -14,18 +14,18 @@ export class Scope {
     constructor(
         readonly engine: Engine,
         readonly parent: Scope | null,
-        readonly program: Program | null,
+        readonly sourceCode: string | null,
         readonly thisValue: Value,
         readonly variables: Variables
     ) {}
     
-    createChildScope(program: Program | null, thisValue: Value, parameters: Variables): Scope {
-        return new Scope(this.engine, this, program, thisValue, parameters);
+    createChildScope(sourceCode: string | null, thisValue: Value, parameters: Variables): Scope {
+        return new Scope(this.engine, this, sourceCode, thisValue, parameters);
     }
 
-    evaluateProgram(program: Program): void {
+    evaluateProgram(program: Program, sourceCode: string): void {
         this.hoistVars(program);
-        const programScope = this.createChildScope(program, this.thisValue, {});
+        const programScope = this.createChildScope(sourceCode, this.thisValue, {});
         programScope.evaluateStatements(program);
     }
 
