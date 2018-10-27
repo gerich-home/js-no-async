@@ -25,7 +25,7 @@ export function formatMessage(astNode: Node, scope: Scope): string {
     const sourceFile = scope.program.sourceFile;
 
     if (sourceFile == null || astNode.start === null || astNode.end === null) {
-        return ` at ${location} ${astNode.start} ${astNode.end} ${Object.keys(scope.program).map(k=>k+':'+scope.program[k])}`;
+        return ` at ${location} ${astNode.start} ${astNode.end} ${Object.keys(scope.program).map(k=>k+':'+(scope.program as any)[k])}`;
     }
 
     return ` at ${location} (${sourceFile.slice(astNode.start, astNode.end)})`;
