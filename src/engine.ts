@@ -50,14 +50,14 @@ export class Engine {
         });
     }
 
-    runGlobalCode(code: string): void {
-        const ast = parse(code);
+    runGlobalCode(sourceCode: string): void {
+        const file = parse(sourceCode);
         
-        this.runGlobalCodeAst(ast);
+        this.runGlobalCodeAst(file, sourceCode);
     }
 
-    runGlobalCodeAst(ast: File): void {
-        this.globalScope.evaluateProgram(ast);
+    runGlobalCodeAst(file: File, sourceCode: string): void {
+        this.globalScope.evaluateProgram(file, sourceCode);
     }
 
     objectConstructor(): ObjectValue {
