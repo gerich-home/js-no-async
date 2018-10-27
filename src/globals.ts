@@ -24,8 +24,8 @@ export function formatMessage(astNode: Node, scope: Scope): string {
     const location = `${start.line}:${start.column}`;
     const sourceFile = scope.program.sourceFile;
 
-    if (sourceFile === null || astNode.start === null || astNode.end === null) {
-        return ` at ${location} ${sourceFile === null} ${astNode.start === null} ${astNode.end === null}`;
+    if (sourceFile == null || astNode.start === null || astNode.end === null) {
+        return ` at ${location} ${sourceFile === null} ${astNode.start === null} ${astNode.end === null} ${program}`;
     }
 
     return ` at ${location} (${sourceFile.slice(astNode.start, astNode.end)})`;
