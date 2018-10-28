@@ -1,4 +1,4 @@
-import { File, ArrayExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, Program, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration, ArrowFunctionExpression } from '@babel/types';
+import { File, ArrayExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, Program, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration, ArrowFunctionExpression, ForStatement } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -105,6 +105,8 @@ export class Scope {
                 return this.evaluateBlockStatement(statement, this.thisValue, {});
             case 'IfStatement':
                 return this.evaluateIfStatement(statement);
+            case 'ForStatement':
+                return this.evaluateForStatement(statement);
             case 'ReturnStatement':
                 return this.evaluateReturnStatement(statement);
             case 'ThrowStatement':
@@ -235,6 +237,32 @@ export class Scope {
             return this.evaluateStatement(statement.alternate);
         }
 
+        return null;
+    }
+    
+    evaluateForStatement(statement: ForStatement): Value | null {
+        const childScope = this.createChildScope(this.sourceCode, this.thisValue, {});
+
+        if (statement.init !== null) {
+            if (statement.init.type === 'VariableDeclaration') {
+                childScope.evaluateVariableDeclaration(statement.init);
+            } else {
+                childScope.evaluateExpression(statement.init);
+            }
+        }
+
+        while(statement.test === null ? true : this.engine.toBoolean(childScope.evaluateExpression(statement.test))) {
+            const result = childScope.evaluateStatement(statement.body);
+            
+            if (result !== null) {
+                return result;
+            }
+
+            if (statement.update !== null) {
+                childScope.evaluateExpression(statement.update);
+            }
+        }
+        
         return null;
     }
 
