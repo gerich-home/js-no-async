@@ -1,4 +1,4 @@
-import { File, ArrayExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, Program, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration } from '@babel/types';
+import { File, ArrayExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, Program, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration, ArrowFunctionExpression } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -127,6 +127,8 @@ export class Scope {
                 return this.evaluateArrayExpression(expression);
             case 'FunctionExpression':
                 return this.evaluateFunctionExpression(expression);
+            case 'ArrowFunctionExpression':
+                return this.evaluateArrowFunctionExpression(expression);
             case 'CallExpression':
                 return this.evaluateCallExpression(expression);
             case 'NewExpression':
@@ -440,6 +442,10 @@ export class Scope {
         return this.functionValue(expression);
     }
 
+    evaluateArrowFunctionExpression(expression: ArrowFunctionExpression): Value {
+        return this.functionValue(expression);
+    }
+
     evaluateMemberExpression(expression: MemberExpression): Value {
         const object = this.evaluateExpression(expression.object);
         const key: Identifier = expression.property;
@@ -503,7 +509,9 @@ export class Scope {
         throw new NotImplementedError('unsupported left value type ' + to.type, to, this);
     }
 
-    functionValue(statement: FunctionExpression | FunctionDeclaration | ObjectMethod) {
+    functionValue(statement: FunctionExpression | FunctionDeclaration | ObjectMethod | ArrowFunctionExpression) {
+        const outerThisValue = this.thisValue;
+
         return this.engine.functionValue((thisArg, argValues) => {
             let index = 0;
             
@@ -529,10 +537,18 @@ export class Scope {
                 index++;
             }
 
-            const childScope = this.createChildScope(this.sourceCode, thisArg, variables);
+            if (statement.type === 'ArrowFunctionExpression' && statement.body.type !== 'BlockStatement') {
+                return this.evaluateExpression(statement.body);
+            }
+
+            const thisValue = statement.type === 'ArrowFunctionExpression' ? outerThisValue : thisArg;
+            const childScope = this.createChildScope(this.sourceCode, thisValue, variables);
+    
+            const body = statement.body as BlockStatement;
+
+            childScope.hoistVars(body);
         
-            childScope.hoistVars(statement.body);
-            return childScope.evaluateStatements(statement.body) || undefinedValue;
+            return childScope.evaluateStatements(body) || undefinedValue;
         });
     }
 }
