@@ -7,7 +7,12 @@ import { RuntimeError } from './runtimeError';
 import { BooleanValue, NumberValue, ObjectFields, ObjectValue, StringValue, Value, Variables } from './types';
 
 function isFunctionNode(node: Node): boolean {
-    return node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ObjectMethod'
+    const type = node.type;
+
+    return type === 'FunctionDeclaration' ||
+        type === 'FunctionExpression' ||
+        type === 'ObjectMethod' ||
+        type === 'ArrowFunctionExpression';
 }
 
 export class Scope {
