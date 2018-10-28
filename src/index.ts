@@ -46,7 +46,7 @@ async function run() {
             [harnessFile.harnessFileName.replace('test262/harness/', '')]: harnessFile.code
         }), {});
 
-    const files = await globAsync('test262/test/**/*.js');
+    const files = await globAsync('test262/test/harness/*.js');
     const counts = {
         passed: 0,
         failed: 0
@@ -70,7 +70,7 @@ async function run() {
             engine.runGlobalCode(code);
         
             if (config.negative) {
-                //console.log('Unexpected positive result');
+                console.log('Unexpected positive result');
                 console.log(`- FAILED`);
                 counts.failed++;
             } else {
@@ -82,7 +82,7 @@ async function run() {
                 console.log(`+ PASS`);
                 counts.passed++;
             } else {
-                //console.log('Engine error', e.message);
+                console.log('Engine error', e.message);
                 console.log(`- FAILED`);
                 counts.failed++;
             }
