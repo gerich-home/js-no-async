@@ -6,6 +6,13 @@ import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
 import { BooleanValue, NumberValue, ObjectProperties, ObjectValue, StringValue, Value, Variables } from './types';
 
+type FunctionNode = FunctionExpression | FunctionDeclaration | ObjectMethod | ArrowFunctionExpression;
+
+type DefiningFunction = {
+    functionNode: FunctionNode;
+    parsedScript: ParsedScript | null;
+};
+
 function isFunctionNode(node: Node): boolean {
     const type = node.type;
 
@@ -18,19 +25,20 @@ function isFunctionNode(node: Node): boolean {
 export class Scope {
     constructor(
         readonly engine: Engine,
+        readonly definingFunction: DefiningFunction | null,
         readonly parent: Scope | null,
         readonly script: ParsedScript | null,
         readonly thisValue: Value,
         readonly variables: Variables
     ) {}
     
-    createChildScope(script: ParsedScript | null, thisValue: Value, parameters: Variables): Scope {
-        return new Scope(this.engine, this, script, thisValue, parameters);
+    createChildScope(script: ParsedScript | null, definingFunction: DefiningFunction | null, thisValue: Value, parameters: Variables): Scope {
+        return new Scope(this.engine, definingFunction, this, script, thisValue, parameters);
     }
 
     evaluateScript(script: ParsedScript): void {
         this.hoistVars(script.file.program);
-        const programScope = this.createChildScope(script, this.thisValue, new Map());
+        const programScope = this.createChildScope(script, null, this.thisValue, new Map());
         programScope.evaluateStatements(script.file.program);
     }
 
@@ -211,7 +219,7 @@ export class Scope {
     }
 
     evaluateBlockStatement(statement: BlockStatement, thisArg: Value, parameters: Variables): Value | null {
-        const childScope = this.createChildScope(this.script, thisArg, parameters);
+        const childScope = this.createChildScope(this.script, null, thisArg, parameters);
         
         return childScope.evaluateStatements(statement);
     }
@@ -229,7 +237,7 @@ export class Scope {
     }
     
     evaluateForStatement(statement: ForStatement): Value | null {
-        const childScope = this.createChildScope(this.script, this.thisValue, new Map());
+        const childScope = this.createChildScope(this.script, null, this.thisValue, new Map());
 
         if (statement.init !== null) {
             if (statement.init.type === 'VariableDeclaration') {
@@ -543,12 +551,11 @@ export class Scope {
         throw new NotImplementedError('unsupported left value type ' + to.type, to, this);
     }
 
-    functionValue(statement: FunctionExpression | FunctionDeclaration | ObjectMethod | ArrowFunctionExpression) {
+    functionValue(statement: FunctionNode) {
         const outerThisValue = this.thisValue;
 
         return this.engine.functionValue((thisArg, argValues) => {
             let index = 0;
-            
             
             const args = this.engine.objectConstructor();
             args.ownProperties.set('length', {
@@ -579,7 +586,10 @@ export class Scope {
             }
 
             const thisValue = statement.type === 'ArrowFunctionExpression' ? outerThisValue : thisArg;
-            const childScope = this.createChildScope(this.script, thisValue, variables);
+            const childScope = this.createChildScope(this.script, {
+                parsedScript: this.script,
+                functionNode: statement
+            }, thisValue, variables);
     
             const body = statement.body as BlockStatement;
 

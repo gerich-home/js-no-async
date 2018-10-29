@@ -18,14 +18,29 @@ export function getObjectField(value: ObjectValue, propertyName: string): Value 
 }
 
 export function formatMessage(node: Node, scope: Scope): string {
+    return formatNode(node, scope.script) + '\n' + formatStack(scope);
+}
+
+function formatStack(scope: Scope | null): string {
+    if (scope === null) {
+        return '> [[GLOBAL]]';
+    }
+
+    if (scope.definingFunction === null) {
+        return formatStack(scope.parent);
+    }
+
+    return '>' + formatNode(scope.definingFunction.functionNode, scope.definingFunction.parsedScript) + '\n' + formatStack(scope.parent);
+}
+
+function formatNode(node: Node, script: ParsedScript | null): string {
     if (node.loc === null) {
         return '';
     }
 
     const start = node.loc.start;
     const location = `${start.line}:${start.column}`;
-    const script = scope.script;
-
+    
     if (script === null || node.start === null || node.end === null) {
         return ` at ${location}`;
     }

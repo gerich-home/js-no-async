@@ -24,7 +24,7 @@ export class Engine {
         })
     };
 
-    readonly globalScope = new Scope(this, null, null, undefinedValue, new Map());
+    readonly globalScope = new Scope(this, null, null, null, undefinedValue, new Map());
 
     constructor() {
         this.rootPrototype.ownProperties.set('toString', {
