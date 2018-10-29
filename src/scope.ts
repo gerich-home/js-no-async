@@ -30,7 +30,7 @@ export class Scope {
 
     evaluateProgram(script: ParsedScript): void {
         this.hoistVars(script.file.program);
-        const programScope = this.createChildScope(script, this.thisValue, {});
+        const programScope = this.createChildScope(script, this.thisValue, new Map());
         programScope.evaluateStatements(script.file.program);
     }
 
@@ -77,7 +77,7 @@ export class Scope {
         const hoistedVars = this.getHoistedVars(block);
 
         for (const varName of hoistedVars) {
-            this.variables[varName] = undefinedValue;
+            this.variables.set(varName, undefinedValue);
         }
     }
 
@@ -102,7 +102,7 @@ export class Scope {
             case 'ExpressionStatement':
                 return this.evaluateExpressionStatement(statement);
             case 'BlockStatement':
-                return this.evaluateBlockStatement(statement, this.thisValue, {});
+                return this.evaluateBlockStatement(statement, this.thisValue, new Map());
             case 'IfStatement':
                 return this.evaluateIfStatement(statement);
             case 'ForStatement':
@@ -203,19 +203,19 @@ export class Scope {
         let trueError = false;
         
         try {
-            return this.evaluateBlockStatement(statement.block, this.thisValue, {});
+            return this.evaluateBlockStatement(statement.block, this.thisValue, new Map());
         } catch(err) {
             if(err instanceof RuntimeError && statement.handler !== null) {
-                return this.evaluateBlockStatement(statement.handler.body, this.thisValue, statement.handler.param === null ? {} : {
-                    [statement.handler.param.name]: err.thrownValue
-                });
+                return this.evaluateBlockStatement(statement.handler.body, this.thisValue, statement.handler.param === null ? new Map() : new Map([
+                    [statement.handler.param.name, err.thrownValue]
+                ]));
             } else {
                 trueError = true;
                 throw err;
             }
         } finally {
             if (!trueError && statement.finalizer !== null) {
-                return this.evaluateBlockStatement(statement.finalizer, this.thisValue, {});
+                return this.evaluateBlockStatement(statement.finalizer, this.thisValue, new Map());
             }
         }
     }
@@ -239,7 +239,7 @@ export class Scope {
     }
     
     evaluateForStatement(statement: ForStatement): Value | null {
-        const childScope = this.createChildScope(this.script, this.thisValue, {});
+        const childScope = this.createChildScope(this.script, this.thisValue, new Map());
 
         if (statement.init !== null) {
             if (statement.init.type === 'VariableDeclaration') {
@@ -504,8 +504,10 @@ export class Scope {
     }
     
     evaluateIdentifier(expression: Identifier): Value {
-        if (this.variables.hasOwnProperty(expression.name)) {
-            return this.variables[expression.name];
+        const variable = this.variables.get(expression.name);
+
+        if (variable !== undefined) {
+            return variable;
         }
 
         if (this.parent !== null) {
@@ -516,8 +518,8 @@ export class Scope {
     }
 
     assignIdentifier(value: Value, to: Identifier): void {
-        if (this.variables.hasOwnProperty(to.name)) {
-            this.variables[to.name] = value;
+        if (this.variables.has(to.name)) {
+            this.variables.set(to.name, value);
         } else {
             if (this.parent === null) {
                 throw new NotImplementedError('cannot assign variable as it is not defined ' + to.name, to, this);
@@ -557,14 +559,15 @@ export class Scope {
         return this.engine.functionValue((thisArg, argValues) => {
             let index = 0;
             
-            const variables: Variables = {};
             
             const args = this.engine.objectConstructor();
             args.ownProperties.set('length', {
                 value: numberValue(argValues.length)
             });
 
-            variables.arguments = args;
+            const variables: Variables = new Map([
+                ['arguments', args]
+            ]);
 
             for(const parameter of statement.params) {
                 switch(parameter.type) {
@@ -572,7 +575,7 @@ export class Scope {
                         const argumentValue = index < argValues.length ?
                             argValues[index] :
                             undefinedValue;
-                        variables[parameter.name] = argumentValue;
+                        variables.set(parameter.name, argumentValue);
                     break;
                     default:
                         throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported', parameter, this);

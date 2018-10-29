@@ -22,7 +22,7 @@ export class Engine {
         })
     };
 
-    readonly globalScope = new Scope(this, null, null, undefinedValue, {});
+    readonly globalScope = new Scope(this, null, null, undefinedValue, new Map());
 
     constructor() {
         this.rootPrototype.ownProperties.set('toString', {
@@ -38,7 +38,7 @@ export class Engine {
         });
         
         this.rootPrototype.ownProperties.set('hasOwnProperty', {
-            value: this.functionValue((thisArg, args) => booleanValue(Object.prototype.hasOwnProperty.call((thisArg as ObjectValue).ownProperties, this.toString(args[0]))))
+            value: this.functionValue((thisArg, args) => booleanValue((thisArg as ObjectValue).ownProperties.has(this.toString(args[0]))))
         });
 
         this.functionPrototype.ownProperties.set('call', {
@@ -73,7 +73,7 @@ export class Engine {
         
         Object.keys(this.globals)
             .forEach((name) => {
-                this.globalScope.variables[name] = (this.globals as any)[name];
+                this.globalScope.variables.set(name, (this.globals as any)[name]);
             });
     }
 

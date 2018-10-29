@@ -44,9 +44,7 @@ export type InternalObjectFields = {
     [variableName: string]: any;
 };
 
-export type Variables = {
-    [variableName: string]: Value;
-};
+export type Variables =  Map<string, Value>;
 
 export type FunctionInternalFields = {
     invoke(thisArg: Value, argValues: Value[]): Value;

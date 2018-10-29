@@ -1,4 +1,3 @@
-import { parse } from '@babel/parser';
 import fs from 'fs';
 import glob from 'glob';
 import yaml from 'js-yaml';
@@ -51,7 +50,7 @@ async function run() {
     };
 
     for (const file of files) {
-        console.log(`Running test: ${file.replace('test262/test/', '')}`);
+        console.log(`Running test: ${file}`);
         const code = await readFileAsync(file);
 
         const config = extractYaml(code);
