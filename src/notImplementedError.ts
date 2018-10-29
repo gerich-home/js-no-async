@@ -4,11 +4,12 @@ import { Scope } from "./scope";
 
 export class NotImplementedError extends Error {
     constructor(
-        message: string,
-        astNode: Node,
+        details: string,
+        node: Node,
         scope: Scope
     ) {
-        super(`${message}${formatMessage(astNode, scope)}`);
+        super();
+        this.message = `${details}${formatMessage(node, scope)}`;
     }
 
     toString() {

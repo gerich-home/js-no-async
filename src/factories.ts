@@ -4,6 +4,7 @@ import { BooleanValue, InternalObjectFields, NullValue, NumberValue, ObjectPrope
 export type ParsedScript = {
     file: File;
     sourceCode: string;
+    path: string;
 };
 
 export function numberValue(value: number): NumberValue {

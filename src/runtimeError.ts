@@ -9,8 +9,8 @@ export class RuntimeError extends Error {
         public thrownValue: Value,
         scope: Scope
     ) {
-        super(`${tryGetThrownValue(scope, thrownValue)}${formatMessage(statement, scope)}`);
-        this.message = `${tryGetThrownValue(scope, thrownValue)}${formatMessage(statement, scope)}`;
+        super();
+        this.message = `${tryGetThrownValue(scope, thrownValue, statement)}${formatMessage(statement, scope)}`;
     }
 
     toString() {
@@ -18,9 +18,9 @@ export class RuntimeError extends Error {
     }
 }
 
-function tryGetThrownValue(scope: Scope, thrownValue: Value): string | null {
+function tryGetThrownValue(scope: Scope, thrownValue: Value, statement: ThrowStatement): string | null {
     try {
-        return scope.engine.toString(thrownValue);
+        return scope.engine.toString(thrownValue, statement, scope);
     } catch {
         return null;
     }

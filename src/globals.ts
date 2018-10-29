@@ -17,25 +17,26 @@ export function getObjectField(value: ObjectValue, propertyName: string): Value 
     return getObjectField(value.prototype, propertyName);
 }
 
-export function formatMessage(astNode: Node, scope: Scope): string {
-    if (astNode.loc === null) {
+export function formatMessage(node: Node, scope: Scope): string {
+    if (node.loc === null) {
         return '';
     }
 
-    const start = astNode.loc.start;
+    const start = node.loc.start;
     const location = `${start.line}:${start.column}`;
     const script = scope.script;
 
-    if (script == null || astNode.start === null || astNode.end === null) {
+    if (script === null || node.start === null || node.end === null) {
         return ` at ${location}`;
     }
 
-    return ` at ${location} (${script.sourceCode.slice(astNode.start, astNode.end)})`;
+    return ` at ${script.path}:${location} (${script.sourceCode.slice(node.start, node.end)})`;
 }
 
-export function parseScript(sourceCode: string): ParsedScript {
+export function parseScript(sourceCode: string, path: string): ParsedScript {
     return {
         file: parse(sourceCode),
-        sourceCode
+        sourceCode,
+        path
     };
 }

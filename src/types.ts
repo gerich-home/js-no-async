@@ -1,4 +1,5 @@
-import { Statement } from "@babel/types";
+import { Node, Statement } from "@babel/types";
+import { Scope } from "./scope";
 
 export type Value = NumberValue | StringValue | BooleanValue | NullValue | UndefinedValue | ObjectValue;
 
@@ -47,7 +48,7 @@ export type InternalObjectFields = {
 export type Variables =  Map<string, Value>;
 
 export type FunctionInternalFields = {
-    invoke(thisArg: Value, argValues: Value[]): Value;
+    invoke(thisArg: Value, argValues: Value[], node: Node, scope: Scope): Value;
 };
 
 export type Block = {

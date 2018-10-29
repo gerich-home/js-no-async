@@ -33,7 +33,7 @@ async function run() {
         
         return {
             harnessFileName,
-            script: parseScript(sourceCode)
+            script: parseScript(sourceCode, harnessFileName)
         };
     }));
 
@@ -58,13 +58,13 @@ async function run() {
         const engine = new Engine();
 
         try {
-            engine.runParsedScript(allHarnessCode['assert.js']);
-            engine.runParsedScript(allHarnessCode['sta.js']);
+            engine.runGlobalCode(allHarnessCode['assert.js']);
+            engine.runGlobalCode(allHarnessCode['sta.js']);
             (config.includes || [])
                 .forEach((include: string) => {
-                    engine.runParsedScript(allHarnessCode[include]);
+                    engine.runGlobalCode(allHarnessCode[include]);
                 });
-            engine.runGlobalCode(code);
+            engine.runGlobalCode(parseScript(code, file));
         
             if (config.negative) {
                 console.log('Unexpected positive result');

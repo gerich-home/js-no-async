@@ -28,7 +28,7 @@ export class Scope {
         return new Scope(this.engine, this, script, thisValue, parameters);
     }
 
-    evaluateProgram(script: ParsedScript): void {
+    evaluateScript(script: ParsedScript): void {
         this.hoistVars(script.file.program);
         const programScope = this.createChildScope(script, this.thisValue, new Map());
         programScope.evaluateStatements(script.file.program);
@@ -351,7 +351,7 @@ export class Scope {
         switch (expression.operator) {
             case '+':
                 if (left.type === 'string' || right.type === 'string') {
-                    return stringValue(this.engine.toString(left) + this.engine.toString(right));
+                    return stringValue(this.engine.toString(left, expression, this) + this.engine.toString(right, expression, this));
                 } else {
                     return numberValue(this.engine.toNumber(left) + this.engine.toNumber(right));
                 }
