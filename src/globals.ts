@@ -1,7 +1,8 @@
 import { Node } from "@babel/types";
-import { undefinedValue } from "./factories";
+import { undefinedValue, ParsedScript } from "./factories";
 import { Scope } from "./scope";
 import { ObjectValue, Value } from "./types";
+import { parse } from "@babel/parser";
 
 export function getObjectField(value: ObjectValue, fieldName: string): Value {
     if (Object.prototype.hasOwnProperty.call(value.ownFields, fieldName)) {
@@ -22,11 +23,18 @@ export function formatMessage(astNode: Node, scope: Scope): string {
 
     const start = astNode.loc.start;
     const location = `${start.line}:${start.column}`;
-    const sourceCode = scope.sourceCode;
+    const script = scope.script;
 
-    if (sourceCode == null || astNode.start === null || astNode.end === null) {
+    if (script == null || astNode.start === null || astNode.end === null) {
         return ` at ${location}`;
     }
 
-    return ` at ${location} (${sourceCode.slice(astNode.start, astNode.end)})`;
+    return ` at ${location} (${script.sourceCode.slice(astNode.start, astNode.end)})`;
+}
+
+export function parseScript(sourceCode: string): ParsedScript {
+    return {
+        file: parse(sourceCode),
+        sourceCode
+    };
 }

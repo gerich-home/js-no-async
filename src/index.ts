@@ -3,6 +3,7 @@ import fs from 'fs';
 import glob from 'glob';
 import yaml from 'js-yaml';
 import { Engine } from './engine';
+import { parseScript } from './globals';
 
 run();
 
@@ -33,17 +34,14 @@ async function run() {
         
         return {
             harnessFileName,
-            code: {
-                sourceCode,
-                file: parse(sourceCode)
-            }
+            script: parseScript(sourceCode)
         };
     }));
 
     const allHarnessCode: any = allHarnessCodeFiles
         .reduce((o, harnessFile) => ({
             ...o,
-            [harnessFile.harnessFileName.replace('test262/harness/', '')]: harnessFile.code
+            [harnessFile.harnessFileName.replace('test262/harness/', '')]: harnessFile.script
         }), {});
 
     const files = await globAsync('test262/test/harness/*.js');
@@ -61,11 +59,11 @@ async function run() {
         const engine = new Engine();
 
         try {
-            engine.runGlobalCodeAst(allHarnessCode['assert.js']);
-            engine.runGlobalCodeAst(allHarnessCode['sta.js']);
+            engine.runParsedScript(allHarnessCode['assert.js']);
+            engine.runParsedScript(allHarnessCode['sta.js']);
             (config.includes || [])
                 .forEach((include: string) => {
-                    engine.runGlobalCodeAst(allHarnessCode[include]);
+                    engine.runParsedScript(allHarnessCode[include]);
                 });
             engine.runGlobalCode(code);
         

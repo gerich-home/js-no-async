@@ -1,15 +1,10 @@
 import { parse, parseExpression } from '@babel/parser';
-import { Expression, File, FunctionExpression } from '@babel/types';
-import { booleanValue, nullValue, objectValue, stringValue, undefinedValue } from './factories';
-import { getObjectField } from './globals';
+import { Expression, FunctionExpression } from '@babel/types';
+import { booleanValue, nullValue, objectValue, stringValue, undefinedValue, ParsedScript } from './factories';
+import { getObjectField, parseScript } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { Scope } from './scope';
 import { FunctionInternalFields, ObjectValue, StringValue, UndefinedValue, Value } from './types';
-
-type ParsedScript = {
-    file: File;
-    sourceCode: string;
-};
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
@@ -59,16 +54,11 @@ export class Engine {
     }
 
     runGlobalCode(sourceCode: string): void {
-        const file = parse(sourceCode);
-        
-        this.runGlobalCodeAst({
-            file,
-            sourceCode
-        });
+        this.runParsedScript(parseScript(sourceCode));
     }
 
-    runGlobalCodeAst(script: ParsedScript): void {
-        this.globalScope.evaluateProgram(script.file, script.sourceCode);
+    runParsedScript(script: ParsedScript): void {
+        this.globalScope.evaluateProgram(script);
     }
 
     objectConstructor(): ObjectValue {

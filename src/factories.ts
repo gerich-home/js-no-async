@@ -1,4 +1,10 @@
 import { BooleanValue, InternalObjectFields, NullValue, NumberValue, ObjectFields, ObjectPrototypeValue, ObjectValue, StringValue, UndefinedValue } from "./types";
+import { File } from "@babel/types";
+
+export type ParsedScript = {
+    file: File;
+    sourceCode: string;
+};
 
 export function numberValue(value: number): NumberValue {
     return {

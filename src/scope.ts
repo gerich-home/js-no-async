@@ -1,6 +1,6 @@
 import { File, ArrayExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, Program, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration, ArrowFunctionExpression, ForStatement } from '@babel/types';
 import { Engine } from './engine';
-import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue } from './factories';
+import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue, ParsedScript } from './factories';
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
@@ -19,19 +19,19 @@ export class Scope {
     constructor(
         readonly engine: Engine,
         readonly parent: Scope | null,
-        readonly sourceCode: string | null,
+        readonly script: ParsedScript | null,
         readonly thisValue: Value,
         readonly variables: Variables
     ) {}
     
-    createChildScope(sourceCode: string | null, thisValue: Value, parameters: Variables): Scope {
-        return new Scope(this.engine, this, sourceCode, thisValue, parameters);
+    createChildScope(script: ParsedScript | null, thisValue: Value, parameters: Variables): Scope {
+        return new Scope(this.engine, this, script, thisValue, parameters);
     }
 
-    evaluateProgram(file: File, sourceCode: string): void {
-        this.hoistVars(file.program);
-        const programScope = this.createChildScope(sourceCode, this.thisValue, {});
-        programScope.evaluateStatements(file.program);
+    evaluateProgram(script: ParsedScript): void {
+        this.hoistVars(script.file.program);
+        const programScope = this.createChildScope(script, this.thisValue, {});
+        programScope.evaluateStatements(script.file.program);
     }
 
     getHoistedVars(block: Block): string[] {
@@ -218,12 +218,10 @@ export class Scope {
                 return this.evaluateBlockStatement(statement.finalizer, this.thisValue, {});
             }
         }
-
-        return null;
     }
 
     evaluateBlockStatement(statement: BlockStatement, thisArg: Value, parameters: Variables): Value | null {
-        const childScope = this.createChildScope(this.sourceCode, thisArg, parameters);
+        const childScope = this.createChildScope(this.script, thisArg, parameters);
         
         return childScope.evaluateStatements(statement);
     }
@@ -241,7 +239,7 @@ export class Scope {
     }
     
     evaluateForStatement(statement: ForStatement): Value | null {
-        const childScope = this.createChildScope(this.sourceCode, this.thisValue, {});
+        const childScope = this.createChildScope(this.script, this.thisValue, {});
 
         if (statement.init !== null) {
             if (statement.init.type === 'VariableDeclaration') {
@@ -575,7 +573,7 @@ export class Scope {
             }
 
             const thisValue = statement.type === 'ArrowFunctionExpression' ? outerThisValue : thisArg;
-            const childScope = this.createChildScope(this.sourceCode, thisValue, variables);
+            const childScope = this.createChildScope(this.script, thisValue, variables);
     
             const body = statement.body as BlockStatement;
 
