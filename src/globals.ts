@@ -5,8 +5,8 @@ import { ObjectValue, Value } from "./types";
 import { parse } from "@babel/parser";
 
 export function getObjectField(value: ObjectValue, fieldName: string): Value {
-    if (Object.prototype.hasOwnProperty.call(value.ownFields, fieldName)) {
-        return value.ownFields[fieldName];
+    if (Object.prototype.hasOwnProperty.call(value.ownProperties, fieldName)) {
+        return value.ownProperties[fieldName];
     }
 
     if (value.prototype.type === 'null') {

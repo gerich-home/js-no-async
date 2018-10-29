@@ -27,16 +27,18 @@ export type UndefinedValue = {
 
 export type ObjectValue = {
     readonly type: 'object';
-    readonly ownFields: ObjectFields;
+    readonly ownProperties: ObjectProperties;
     readonly internalFields: InternalObjectFields;
     readonly prototype: ObjectValue | NullValue;
 };
 
 export type ObjectPrototypeValue = ObjectValue | NullValue;
 
-export type ObjectFields = {
-    [variableName: string]: Value;
+export type ObjectPropertyDescriptor = {
+    value: Value;
 };
+
+export type ObjectProperties = Map<string, ObjectPropertyDescriptor>;
 
 export type InternalObjectFields = {
     [variableName: string]: any;

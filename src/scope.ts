@@ -4,7 +4,7 @@ import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefin
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
-import { BooleanValue, NumberValue, ObjectFields, ObjectValue, StringValue, Value, Variables } from './types';
+import { BooleanValue, NumberValue, ObjectProperties, ObjectValue, StringValue, Value, Variables } from './types';
 
 function isFunctionNode(node: Node): boolean {
     const type = node.type;
@@ -411,7 +411,7 @@ export class Scope {
             return false;
         }
         
-        return left.prototype === right.ownFields.prototype;
+        return left.prototype === right.ownProperties.prototype;
     }
 
     strictEqual(left: Value, right: Value): boolean {
@@ -433,7 +433,7 @@ export class Scope {
     }
 
     evaluateObjectExpression(expression: ObjectExpression): ObjectValue {
-        const fields: ObjectFields = {};
+        const fields: ObjectProperties = {};
 
         for(const property of expression.properties) {
             switch(property.type) {
@@ -459,13 +459,13 @@ export class Scope {
 
     evaluateArrayExpression(expression: ArrayExpression): Value {
         const array = objectValue(this.engine.globals.Array.prototype);
-        array.ownFields.length = numberValue(expression.elements.length);
+        array.ownProperties.length = numberValue(expression.elements.length);
         
         expression.elements.forEach((value, index) => {
-            array.ownFields[index] = value === null ? undefinedValue : this.evaluateExpression(value);
+            array.ownProperties[index] = value === null ? undefinedValue : this.evaluateExpression(value);
         });
 
-        array.ownFields.length = numberValue(expression.elements.length);
+        array.ownProperties.length = numberValue(expression.elements.length);
         return array;
     }
 
@@ -526,7 +526,7 @@ export class Scope {
             throw new NotImplementedError('member assignment is unsupported for ' + object.type, to, this);
         }
 
-        object.ownFields[key.name] = value;
+        object.ownProperties[key.name] = value;
     }
 
     assignValue(value: Value, to: LVal): void {
@@ -549,7 +549,7 @@ export class Scope {
             const variables: Variables = {};
             
             const args = this.engine.objectConstructor();
-            args.ownFields.length = numberValue(argValues.length);
+            args.ownProperties.length = numberValue(argValues.length);
 
             variables.arguments = args;
 
