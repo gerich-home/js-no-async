@@ -1,6 +1,6 @@
 import { parseExpression } from '@babel/parser';
 import { FunctionExpression, Node } from '@babel/types';
-import { booleanValue, nullValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
+import { booleanValue, nullValue, objectValue, ParsedScript, stringValue, undefinedValue, numberValue } from './factories';
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { Scope } from './scope';
@@ -15,6 +15,8 @@ export class Engine {
         Function: this.functionValue(this.functionConstructor.bind(this), this.functionPrototype),
         Array: this.functionValue(this.arrayConstructor.bind(this)),
         String: this.functionValue(this.stringConstructor.bind(this)),
+        Number: this.functionValue(this.numberConstructor.bind(this)),
+        Boolean: this.functionValue(this.booleanConstructor.bind(this)),
         Symbol: this.functionValue(this.symbolConstructor.bind(this)),
         log: this.functionValue((thisArg, values, node, scope) => {
             console.log(...values.map(value => this.toString(value, node, scope)));
@@ -101,6 +103,14 @@ export class Engine {
 
     stringConstructor(thisArg: Value, args: Value[], node: Node, scope: Scope): Value {
         return stringValue(args.length === 0 ? '' : this.toString(args[0], node, scope));
+    }
+
+    numberConstructor(thisArg: Value, args: Value[], node: Node, scope: Scope): Value {
+        return numberValue(args.length === 0 ? 0 : this.toNumber(args[0]));
+    }
+
+    booleanConstructor(thisArg: Value, args: Value[], node: Node, scope: Scope): Value {
+        return booleanValue(args.length === 0 ? false : this.toBoolean(args[0]));
     }
 
     symbolConstructor(): UndefinedValue {
