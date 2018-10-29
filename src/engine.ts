@@ -30,11 +30,6 @@ export class Engine {
     readonly globalScope = new Scope(this, null, null, undefinedValue, {});
 
     constructor() {
-        Object.keys(this.globals)
-            .forEach((name) => {
-                this.globalScope.variables[name] = (this.globals as any)[name];
-            });
-        
         this.rootPrototype.ownFields.toString = this.functionValue(() => stringValue('[object Object]')) as any;
         this.rootPrototype.ownFields.valueOf = this.functionValue(thisArg => thisArg) as any;
         this.rootPrototype.ownFields.constructor = this.globals.Object as any;
@@ -56,6 +51,11 @@ export class Engine {
 
             return undefinedValue;
         });
+
+        Object.keys(this.globals)
+            .forEach((name) => {
+                this.globalScope.variables[name] = (this.globals as any)[name];
+            });
     }
 
     runGlobalCode(sourceCode: string): void {
