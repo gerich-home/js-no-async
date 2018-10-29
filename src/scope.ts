@@ -34,27 +34,21 @@ export class Scope {
         programScope.evaluateStatements(script.file.program);
     }
 
-    getHoistedVars(block: Block): string[] {
+    hoistVars(block: Block) {
+        const self = this;
         const state = {
-            functionDepth: 0,
-            vars: [] as string[]
+            functionDepth: 0
         };
         
         traverse(block, {
             enter(node, ancestors, state) {
-                const type = node.type;
                 if (state.functionDepth === 0) {
                     switch(node.type) {
                         case 'FunctionDeclaration':
-                            if(node.id !== null) {
-                                state.vars.push(node.id.name);
-                            }
+                            self.evaluateFunctionDeclaration(node);
                         break;
                         case 'VariableDeclaration':
-                            state.vars.push(...node.declarations
-                                .filter(d => d.id.type === 'Identifier')
-                                .map(d => (d.id as Identifier).name)
-                                );
+                            self.evaluateVariableDeclaration(node);
                         break;
                     }
                 }
@@ -69,16 +63,6 @@ export class Scope {
                 }
             }
         }, state);
-
-        return state.vars;
-    }
-
-    hoistVars(block: Block) {
-        const hoistedVars = this.getHoistedVars(block);
-
-        for (const varName of hoistedVars) {
-            this.variables.set(varName, undefinedValue);
-        }
     }
 
     evaluateStatements(block: Block): Value | null {
@@ -96,9 +80,9 @@ export class Scope {
     evaluateStatement(statement: Statement): Value | null {
         switch(statement.type) {
             case 'VariableDeclaration':
-                return this.evaluateVariableDeclaration(statement);
+            return null;
             case 'FunctionDeclaration':
-                return this.evaluateFunctionDeclaration(statement);
+                return null;
             case 'ExpressionStatement':
                 return this.evaluateExpressionStatement(statement);
             case 'BlockStatement':
@@ -165,7 +149,13 @@ export class Scope {
                 undefinedValue :
                 this.evaluateExpression(declaration.init);
 
-            this.assignValue(initialValue, declaration.id);
+            switch(declaration.id.type) {
+                case 'Identifier':
+                    this.variables.set(declaration.id.name, initialValue);
+                    break;
+                default:
+                    throw new NotImplementedError('unsupported variable declaration type: ' + declaration.id.type, statement, this);
+            }
         }
 
         return null;
@@ -175,7 +165,7 @@ export class Scope {
         if(statement.id === null) {
             throw new NotImplementedError('wrong function declaration', statement, this);
         } else {
-            this.assignValue(this.functionValue(statement), statement.id);
+            this.variables.set(statement.id.name, this.functionValue(statement));
         }
 
         return null;
