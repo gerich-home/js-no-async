@@ -1,19 +1,20 @@
+import { parse } from "@babel/parser";
 import { Node } from "@babel/types";
-import { undefinedValue, ParsedScript } from "./factories";
+import { ParsedScript, undefinedValue } from "./factories";
 import { Scope } from "./scope";
 import { ObjectValue, Value } from "./types";
-import { parse } from "@babel/parser";
 
-export function getObjectField(value: ObjectValue, fieldName: string): Value {
-    if (Object.prototype.hasOwnProperty.call(value.ownFields, fieldName)) {
-        return value.ownFields[fieldName];
+export function getObjectField(value: ObjectValue, propertyName: string): Value {
+    const property = value.ownProperties.get(propertyName);
+    if (property !== undefined) {
+        return property.value;
     }
 
     if (value.prototype.type === 'null') {
         return undefinedValue;
     }
 
-    return getObjectField(value.prototype, fieldName);
+    return getObjectField(value.prototype, propertyName);
 }
 
 export function formatMessage(astNode: Node, scope: Scope): string {

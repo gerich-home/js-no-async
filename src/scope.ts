@@ -1,10 +1,10 @@
-import { File, ArrayExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, Program, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration, ArrowFunctionExpression, ForStatement } from '@babel/types';
+import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration } from '@babel/types';
 import { Engine } from './engine';
-import { booleanValue, nullValue, numberValue, objectValue, stringValue, undefinedValue, ParsedScript } from './factories';
+import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
-import { BooleanValue, NumberValue, ObjectFields, ObjectValue, StringValue, Value, Variables } from './types';
+import { BooleanValue, NumberValue, ObjectProperties, ObjectValue, StringValue, Value, Variables } from './types';
 
 function isFunctionNode(node: Node): boolean {
     const type = node.type;
@@ -411,7 +411,9 @@ export class Scope {
             return false;
         }
         
-        return left.prototype === right.ownFields.prototype;
+        const prototype = right.ownProperties.get('prototype');
+
+        return left.prototype === (prototype && prototype.value);
     }
 
     strictEqual(left: Value, right: Value): boolean {
@@ -433,13 +435,15 @@ export class Scope {
     }
 
     evaluateObjectExpression(expression: ObjectExpression): ObjectValue {
-        const fields: ObjectFields = {};
+        const fields: ObjectProperties = new Map();
 
         for(const property of expression.properties) {
             switch(property.type) {
                 case 'ObjectProperty':
                     const key: Identifier = property.key;
-                    fields[key.name] = this.evaluateExpression(property.value);
+                    fields.set(key.name, {
+                        value: this.evaluateExpression(property.value)
+                    });
                     break;
                 case 'ObjectMethod':
                     const methodKey: Identifier = property.key;
@@ -447,7 +451,9 @@ export class Scope {
                         throw new NotImplementedError('getters/setters are unsupported ' + property.kind, expression, this);
                     }
 
-                    fields[methodKey.name] = this.functionValue(property);
+                    fields.set(methodKey.name, {
+                        value: this.functionValue(property)
+                    });
                     break;
                 default:
                     throw new NotImplementedError('unsupported property type ' + property.type, expression, this);
@@ -459,13 +465,16 @@ export class Scope {
 
     evaluateArrayExpression(expression: ArrayExpression): Value {
         const array = objectValue(this.engine.globals.Array.prototype);
-        array.ownFields.length = numberValue(expression.elements.length);
+        array.ownProperties.set('length', {
+            value: numberValue(expression.elements.length)
+        });
         
         expression.elements.forEach((value, index) => {
-            array.ownFields[index] = value === null ? undefinedValue : this.evaluateExpression(value);
+            array.ownProperties.set(index.toString(), {
+                value:  value === null ? undefinedValue : this.evaluateExpression(value)
+            });
         });
 
-        array.ownFields.length = numberValue(expression.elements.length);
         return array;
     }
 
@@ -526,7 +535,9 @@ export class Scope {
             throw new NotImplementedError('member assignment is unsupported for ' + object.type, to, this);
         }
 
-        object.ownFields[key.name] = value;
+        object.ownProperties.set(key.name, {
+            value
+        });
     }
 
     assignValue(value: Value, to: LVal): void {
@@ -549,7 +560,9 @@ export class Scope {
             const variables: Variables = {};
             
             const args = this.engine.objectConstructor();
-            args.ownFields.length = numberValue(argValues.length);
+            args.ownProperties.set('length', {
+                value: numberValue(argValues.length)
+            });
 
             variables.arguments = args;
 

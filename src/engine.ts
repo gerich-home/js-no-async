@@ -1,10 +1,10 @@
-import { parse, parseExpression } from '@babel/parser';
+import { parseExpression } from '@babel/parser';
 import { Expression, FunctionExpression } from '@babel/types';
-import { booleanValue, nullValue, objectValue, stringValue, undefinedValue, ParsedScript } from './factories';
+import { booleanValue, nullValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { getObjectField, parseScript } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { Scope } from './scope';
-import { FunctionInternalFields, ObjectValue, StringValue, UndefinedValue, Value } from './types';
+import { FunctionInternalFields, ObjectProperties, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value } from './types';
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
@@ -25,28 +25,52 @@ export class Engine {
     readonly globalScope = new Scope(this, null, null, undefinedValue, {});
 
     constructor() {
-        this.rootPrototype.ownFields.toString = this.functionValue(() => stringValue('[object Object]')) as any;
-        this.rootPrototype.ownFields.valueOf = this.functionValue(thisArg => thisArg) as any;
-        this.rootPrototype.ownFields.constructor = this.globals.Object as any;
-        this.rootPrototype.ownFields.hasOwnProperty = this.functionValue((thisArg, args) => booleanValue(Object.prototype.hasOwnProperty.call((thisArg as ObjectValue).ownFields, this.toString(args[0])))) as any;
-        this.functionPrototype.ownFields.call = this.functionValue((thisArg, args) => this.executeFunction(thisArg, args[0], args.slice(1), null as any, null as any)); // TODO nulls
-        this.globals.Object.ownFields.getOwnPropertyDescriptor = this.functionValue((thisArg, args) => undefinedValue);
-        this.globals.Object.ownFields.defineProperty = this.functionValue((thisArg, args) => {
-            const obj = args[0];
-            if (obj.type !== 'object') {
-                throw new NotImplementedError('defineProperty should be called for object value', null as any, null as any); // TODO nulls
-            }
-
-            const descriptor = args[2];
-            if (descriptor.type !== 'object') {
-                throw new NotImplementedError('defineProperty descriptor arg should be object value', null as any, null as any); // TODO nulls
-            }
-
-            obj.ownFields[this.toString(args[1])] = descriptor.ownFields.value;
-
-            return undefinedValue;
+        this.rootPrototype.ownProperties.set('toString', {
+            value: this.functionValue(() => stringValue('[object Object]'))
+        });
+        
+        this.rootPrototype.ownProperties.set('valueOf', {
+            value: this.functionValue(thisArg => thisArg)
         });
 
+        this.rootPrototype.ownProperties.set('constructor', {
+            value: this.globals.Object
+        });
+        
+        this.rootPrototype.ownProperties.set('hasOwnProperty', {
+            value: this.functionValue((thisArg, args) => booleanValue(Object.prototype.hasOwnProperty.call((thisArg as ObjectValue).ownProperties, this.toString(args[0]))))
+        });
+
+        this.functionPrototype.ownProperties.set('call', {
+            value: this.functionValue((thisArg, args) => this.executeFunction(thisArg, args[0], args.slice(1), null as any, null as any)) // TODO nulls
+        });
+
+        this.globals.Object.ownProperties.set('getOwnPropertyDescriptor', {
+            value: this.functionValue((thisArg, args) => undefinedValue)
+        });
+
+        this.globals.Object.ownProperties.set('defineProperty', {
+            value: this.functionValue((thisArg, args) => {
+                const obj = args[0];
+                if (obj.type !== 'object') {
+                    throw new NotImplementedError('defineProperty should be called for object value', null as any, null as any); // TODO nulls
+                }
+    
+                const descriptor = args[2];
+                if (descriptor.type !== 'object') {
+                    throw new NotImplementedError('defineProperty descriptor arg should be object value', null as any, null as any); // TODO nulls
+                }
+    
+                const value = descriptor.ownProperties.get('value') as ObjectPropertyDescriptor;
+
+                obj.ownProperties.set(this.toString(args[1]), {
+                    value: value.value
+                });
+    
+                return undefinedValue;
+            })
+        });
+        
         Object.keys(this.globals)
             .forEach((name) => {
                 this.globalScope.variables[name] = (this.globals as any)[name];
@@ -99,11 +123,17 @@ export class Engine {
             invoke
         };
 
-        const result = objectValue(this.functionPrototype, {
-            prototype
-        }, internalFields);
+        const properties: ObjectProperties = new Map([
+            ['prototype', {
+                value: prototype
+            }]
+        ]);
 
-        ((result.ownFields.prototype as ObjectValue).ownFields.constructor as any) = result;
+        const result = objectValue(this.functionPrototype, properties, internalFields);
+
+        prototype.ownProperties.set('constructor', {
+            value: result
+        });
         return result;
     }
     

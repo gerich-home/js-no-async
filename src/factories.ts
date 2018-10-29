@@ -1,5 +1,5 @@
-import { BooleanValue, InternalObjectFields, NullValue, NumberValue, ObjectFields, ObjectPrototypeValue, ObjectValue, StringValue, UndefinedValue } from "./types";
 import { File } from "@babel/types";
+import { BooleanValue, InternalObjectFields, NullValue, NumberValue, ObjectProperties, ObjectPrototypeValue, ObjectValue, StringValue, UndefinedValue } from "./types";
 
 export type ParsedScript = {
     file: File;
@@ -27,10 +27,10 @@ export function booleanValue(value: boolean): BooleanValue {
     };
 }
 
-export function objectValue(prototype: ObjectPrototypeValue, ownFields: ObjectFields = {}, internalFields: InternalObjectFields = {}): ObjectValue {
+export function objectValue(prototype: ObjectPrototypeValue, ownProperties: ObjectProperties = new Map(), internalFields: InternalObjectFields = {}): ObjectValue {
     return {
         type: 'object',
-        ownFields,
+        ownProperties,
         internalFields,
         prototype
     };
