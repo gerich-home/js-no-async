@@ -39,6 +39,7 @@ export class Engine {
         this.rootPrototype.ownFields.valueOf = this.functionValue(thisArg => thisArg) as any;
         this.rootPrototype.ownFields.constructor = this.globals.Object as any;
         this.rootPrototype.ownFields.hasOwnProperty = this.functionValue((thisArg, args) => booleanValue(Object.prototype.hasOwnProperty.call((thisArg as ObjectValue).ownFields, this.toString(args[0])))) as any;
+        this.functionPrototype.ownFields.call = this.functionValue((thisArg, args) => this.executeFunction(thisArg, args[0], args.slice(1), null as any, null as any)); // TODO nulls
         this.globals.Object.ownFields.getOwnPropertyDescriptor = this.functionValue((thisArg, args) => undefinedValue);
         this.globals.Object.ownFields.defineProperty = this.functionValue((thisArg, args) => {
             const obj = args[0];
