@@ -19,6 +19,7 @@ export class Engine {
         Object: this.functionValue(this.objectConstructor.bind(this), this.rootPrototype),
         Function: this.functionValue(this.functionConstructor.bind(this), this.functionPrototype),
         Array: this.functionValue(this.arrayConstructor.bind(this)),
+        String: this.functionValue(this.stringConstructor.bind(this)),
         Symbol: this.functionValue(this.symbolConstructor.bind(this)),
         log: this.functionValue((thisArg, values) => {
             console.log(...values.map(value => this.toString(value)));
@@ -75,6 +76,10 @@ export class Engine {
 
     arrayConstructor(): UndefinedValue {
         return undefinedValue;
+    }
+
+    stringConstructor(thisArg: Value, args: Value[]): Value {
+        return stringValue(args.length === 0 ? '' : this.toString(args[0]));
     }
 
     symbolConstructor(): UndefinedValue {
