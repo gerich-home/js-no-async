@@ -8,9 +8,15 @@ import { BooleanValue, NumberValue, ObjectProperties, ObjectValue, StringValue, 
 
 type FunctionNode = FunctionExpression | FunctionDeclaration | ObjectMethod | ArrowFunctionExpression;
 
-type DefiningFunction = {
-    functionNode: FunctionNode;
-    parsedScript: ParsedScript | null;
+type CallStackEntry = {
+    caller: {
+        node: Node;
+        scope: Scope;
+    };
+    callee: {
+        node: FunctionNode;
+        scope: Scope;
+    };
 };
 
 function isFunctionNode(node: Node): boolean {
@@ -25,20 +31,20 @@ function isFunctionNode(node: Node): boolean {
 export class Scope {
     constructor(
         readonly engine: Engine,
-        readonly definingFunction: DefiningFunction | null,
+        readonly definingFunction: CallStackEntry | null,
         readonly parent: Scope | null,
         readonly script: ParsedScript | null,
         readonly thisValue: Value,
         readonly variables: Variables
     ) {}
     
-    createChildScope(script: ParsedScript | null, definingFunction: DefiningFunction | null, thisValue: Value, parameters: Variables): Scope {
+    createChildScope(script: ParsedScript | null, definingFunction: CallStackEntry | null, thisValue: Value, parameters: Variables): Scope {
         return new Scope(this.engine, definingFunction, this, script, thisValue, parameters);
     }
 
     evaluateScript(script: ParsedScript): void {
-        this.hoistVars(script.file.program);
-        const programScope = this.createChildScope(script, null, this.thisValue, new Map());
+        const programScope = this.createChildScope(script, null, this.thisValue, this.variables);
+        programScope.hoistVars(script.file.program);
         programScope.evaluateStatements(script.file.program);
     }
 
@@ -88,7 +94,7 @@ export class Scope {
     evaluateStatement(statement: Statement): Value | null {
         switch(statement.type) {
             case 'VariableDeclaration':
-            return null;
+                return this.evaluateVariableDeclaration(statement);
             case 'FunctionDeclaration':
                 return null;
             case 'ExpressionStatement':
@@ -552,12 +558,12 @@ export class Scope {
     }
 
     functionValue(statement: FunctionNode) {
-        const outerThisValue = this.thisValue;
+        const scope = this;
 
-        return this.engine.functionValue((thisArg, argValues) => {
+        return this.engine.functionValue((thisArg, argValues, callerNode, callerScope) => {
             let index = 0;
             
-            const args = this.engine.objectConstructor();
+            const args = scope.engine.objectConstructor();
             args.ownProperties.set('length', {
                 value: numberValue(argValues.length)
             });
@@ -575,20 +581,26 @@ export class Scope {
                         variables.set(parameter.name, argumentValue);
                     break;
                     default:
-                        throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported', parameter, this);
+                        throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported', parameter, scope);
                 }
 
                 index++;
             }
 
             if (statement.type === 'ArrowFunctionExpression' && statement.body.type !== 'BlockStatement') {
-                return this.evaluateExpression(statement.body);
+                return scope.evaluateExpression(statement.body);
             }
 
-            const thisValue = statement.type === 'ArrowFunctionExpression' ? outerThisValue : thisArg;
-            const childScope = this.createChildScope(this.script, {
-                parsedScript: this.script,
-                functionNode: statement
+            const thisValue = statement.type === 'ArrowFunctionExpression' ? scope.thisValue : thisArg;
+            const childScope = scope.createChildScope(scope.script, {
+                caller: {
+                    node: callerNode,
+                    scope: callerScope
+                },
+                callee: {
+                    node: statement,
+                    scope
+                }
             }, thisValue, variables);
     
             const body = statement.body as BlockStatement;
