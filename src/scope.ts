@@ -293,27 +293,9 @@ export class Scope {
 
     evaluateNewExpression(expression: NewExpression): Value {
         const callee = this.evaluateExpression(expression.callee);
-        
-        if (callee.type !== 'object') {
-            throw new NotImplementedError('new is unsupported for ' + callee.type, expression, this);
-        }
-    
-        if (callee.prototype !== this.engine.functionPrototype) {
-            throw new NotImplementedError('cannot use new for non-function', expression, this);
-        }
-
-        const prototype = getObjectField(callee, 'prototype');
-        
-        if (prototype.type !== 'object') {
-            throw new NotImplementedError('prototype cannot be ' + callee.type, expression, this);
-        }
-
-        const thisArg = objectValue(prototype);
         const args = expression.arguments.map(arg => this.evaluateExpression(arg));
         
-        const result = this.engine.executeFunction(callee, thisArg, args, expression, this);
-        
-        return result === undefinedValue ? thisArg : result;
+        return this.engine.constructObject(callee, args, expression, this);
     }
     
     getThisArg(callee: Expression): Value {
@@ -573,7 +555,7 @@ export class Scope {
         return this.engine.functionValue((thisArg, argValues, callerNode, callerScope) => {
             let index = 0;
             
-            const args = scope.engine.objectConstructor();
+            const args = scope.engine.newObject(callerNode, callerScope);
             args.ownProperties.set('length', {
                 value: numberValue(argValues.length)
             });

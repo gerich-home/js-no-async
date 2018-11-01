@@ -16,6 +16,7 @@ export class Engine {
         Function: this.functionValue(this.functionConstructor.bind(this), this.functionPrototype),
         Array: this.functionValue(this.arrayConstructor.bind(this)),
         String: this.functionValue(this.stringConstructor.bind(this)),
+        TypeError: this.functionValue(this.typeErrorConstructor.bind(this)),
         Number: this.functionValue(this.numberConstructor.bind(this)),
         Boolean: this.functionValue(this.booleanConstructor.bind(this)),
         Symbol: this.functionValue(this.symbolConstructor.bind(this)),
@@ -58,7 +59,9 @@ export class Engine {
             value: this.functionValue((thisArg, args, node, scope) => {
                 const obj = args[0];
                 if (obj.type !== 'object') {
-                    throw new NotImplementedError('defineProperty should be called for object value', node, scope);
+                    throw new RuntimeError(this.constructObject(this.globals.TypeError, [
+                        stringValue('defineProperty should be called for object value')
+                    ], node, scope), node, scope);
                 }
     
                 const descriptor = obj.ownProperties.get(this.toString(args[1], node, scope));
@@ -69,7 +72,7 @@ export class Engine {
 
                 const value = descriptor.value;
 
-                const resultDescriptor = this.objectConstructor();
+                const resultDescriptor = this.newObject(node, scope);
 
                 resultDescriptor.ownProperties.set('value', {
                     value
@@ -125,6 +128,10 @@ export class Engine {
 
     stringConstructor(thisArg: Value, args: Value[], node: Node, scope: Scope): Value {
         return stringValue(args.length === 0 ? '' : this.toString(args[0], node, scope));
+    }
+
+    typeErrorConstructor(thisArg: Value, args: Value[], node: Node, scope: Scope): Value {
+        return undefinedValue;
     }
 
     numberConstructor(thisArg: Value, args: Value[], node: Node, scope: Scope): Value {
@@ -240,5 +247,31 @@ export class Engine {
 
     executeMethod(value: ObjectValue, methodName: string, args: Value[], node: Node, scope: Scope): Value {
         return this.executeFunction(getObjectField(value, methodName), value, args, node, scope);
+    }
+
+    newObject(node: Node, scope: Scope): ObjectValue {
+        return this.constructObject(this.globals.Object, [], node, scope) as ObjectValue;
+    }
+
+    constructObject(constructor: Value, args: Value[], node: Node, scope: Scope): Value {
+        if (constructor.type !== 'object') {
+            throw new NotImplementedError('new is unsupported for ' + constructor.type, node, scope);
+        }
+    
+        if (constructor.prototype !== this.functionPrototype) {
+            throw new NotImplementedError('cannot use new for non-function', node, scope);
+        }
+
+        const prototype = getObjectField(constructor, 'prototype');
+        
+        if (prototype.type !== 'object') {
+            throw new NotImplementedError('prototype cannot be ' + constructor.type, node, scope);
+        }
+
+        const thisArg = objectValue(prototype);
+        
+        const result = this.executeFunction(constructor, thisArg, args, node, scope);
+        
+        return result === undefinedValue ? thisArg : result;
     }
 }
