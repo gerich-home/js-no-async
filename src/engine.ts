@@ -1,6 +1,6 @@
 import { parseExpression } from '@babel/parser';
 import { FunctionExpression, Node } from '@babel/types';
-import { booleanValue, nullValue, objectValue, ParsedScript, stringValue, undefinedValue, numberValue } from './factories';
+import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { Scope } from './scope';
@@ -54,7 +54,28 @@ export class Engine {
         });
 
         this.globals.Object.ownProperties.set('getOwnPropertyDescriptor', {
-            value: this.functionValue((thisArg, args) => undefinedValue)
+            value: this.functionValue((thisArg, args, node, scope) => {
+                const obj = args[0];
+                if (obj.type !== 'object') {
+                    throw new NotImplementedError('defineProperty should be called for object value', node, scope);
+                }
+    
+                const descriptor = obj.ownProperties.get(this.toString(args[1], node, scope));
+    
+                if (descriptor === undefined) {
+                    return undefinedValue;
+                }
+
+                const value = descriptor.value;
+
+                const resultDescriptor = this.objectConstructor();
+
+                resultDescriptor.ownProperties.set('value', {
+                    value
+                });
+
+                return resultDescriptor;
+            })
         });
 
         this.globals.Object.ownProperties.set('defineProperty', {
@@ -71,12 +92,8 @@ export class Engine {
     
                 const value = descriptor.ownProperties.get('value');
 
-                if (value === undefined) {
-                    throw new NotImplementedError('defineProperty.value should be provided', node, scope);
-                }
-
                 obj.ownProperties.set(this.toString(args[1], node, scope), {
-                    value: value.value
+                    value: value === undefined ? undefinedValue : value.value
                 });
     
                 return undefinedValue;
