@@ -3,6 +3,7 @@ import { FunctionExpression, Node } from '@babel/types';
 import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
+import { RuntimeError } from './runtimeError';
 import { Scope } from './scope';
 import { FunctionInternalFields, ObjectProperties, ObjectValue, StringValue, UndefinedValue, Value } from './types';
 
@@ -80,9 +81,9 @@ export class Engine {
 
         this.globals.Object.ownProperties.set('defineProperty', {
             value: this.functionValue((thisArg, args, node, scope) => {
-                const obj = args[0];
-                if (obj.type !== 'object') {
-                    throw new NotImplementedError('defineProperty should be called for object value', node, scope);
+                const object = args[0];
+                if (object.type !== 'object') {
+                    throw new RuntimeError(stringValue('defineProperty should be called for object value'), node, scope);
                 }
     
                 const descriptor = args[2];
@@ -92,12 +93,16 @@ export class Engine {
     
                 const value = descriptor.ownProperties.get('value');
 
-                obj.ownProperties.set(this.toString(args[1], node, scope), {
+                object.ownProperties.set(this.toString(args[1], node, scope), {
                     value: value === undefined ? undefinedValue : value.value
                 });
     
-                return undefinedValue;
+                return object;
             })
+        });
+
+        (this.globals.Array.prototype as ObjectValue).ownProperties.set('push', {
+            value: this.functionValue(() => undefinedValue)
         });
         
         Object.keys(this.globals)

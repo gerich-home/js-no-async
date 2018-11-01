@@ -1,4 +1,4 @@
-import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, Expression, ExpressionStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration } from '@babel/types';
+import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -128,6 +128,8 @@ export class Scope {
                 return nullValue;
             case 'ObjectExpression':
                 return this.evaluateObjectExpression(expression);
+            case 'ConditionalExpression':
+                return this.evaluateConditionalExpression(expression);
             case 'ArrayExpression':
                 return this.evaluateArrayExpression(expression);
             case 'FunctionExpression':
@@ -192,7 +194,7 @@ export class Scope {
     }
 
     evaluateThrowStatement(statement: ThrowStatement): null {
-        throw new RuntimeError(statement, this.evaluateExpression(statement.argument), this);
+        throw new RuntimeError(this.evaluateExpression(statement.argument), statement, this);
     }
 
     evaluateReturnStatement(statement: ReturnStatement): Value {
@@ -436,6 +438,14 @@ export class Scope {
         }
         
         return left === right;
+    }
+
+    evaluateConditionalExpression(expression: ConditionalExpression): Value {
+        const selectedExpression = this.engine.toBoolean(this.evaluateExpression(expression.test)) ?
+            expression.consequent :
+            expression.alternate;
+        
+        return this.evaluateExpression(selectedExpression);
     }
 
     evaluateObjectExpression(expression: ObjectExpression): ObjectValue {
