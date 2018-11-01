@@ -43,7 +43,7 @@ export class Scope {
     }
 
     evaluateScript(script: ParsedScript): void {
-        const programScope = this.createChildScope(script, null, this.thisValue, this.variables);
+        const programScope = this.createChildScope(script, this.callStackEntry, this.thisValue, this.variables);
         programScope.hoistVars(script.file.program);
         programScope.evaluateStatements(script.file.program);
     }
@@ -227,7 +227,7 @@ export class Scope {
     }
 
     evaluateBlockStatement(statement: BlockStatement, thisArg: Value, parameters: Variables): Value | null {
-        const childScope = this.createChildScope(this.script, null, thisArg, parameters);
+        const childScope = this.createChildScope(this.script, this.callStackEntry, thisArg, parameters);
         
         return childScope.evaluateStatements(statement);
     }
@@ -245,7 +245,7 @@ export class Scope {
     }
     
     evaluateForStatement(statement: ForStatement): Value | null {
-        const childScope = this.createChildScope(this.script, null, this.thisValue, new Map());
+        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, new Map());
 
         if (statement.init !== null) {
             if (statement.init.type === 'VariableDeclaration') {
