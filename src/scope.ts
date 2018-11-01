@@ -181,7 +181,7 @@ export class Scope {
         if(statement.id === null) {
             throw new NotImplementedError('wrong function declaration', statement, this);
         } else {
-            this.variables.set(statement.id.name, this.functionValue(statement));
+            this.variables.set(statement.id.name, this.functionValue(statement, statement.id.name));
         }
 
         return null;
@@ -448,7 +448,7 @@ export class Scope {
                     }
 
                     fields.set(methodKey.name, {
-                        value: this.functionValue(property)
+                        value: this.functionValue(property, methodKey.name)
                     });
                     break;
                 default:
@@ -475,7 +475,7 @@ export class Scope {
     }
 
     evaluateFunctionExpression(expression: FunctionExpression): Value {
-        return this.functionValue(expression);
+        return this.functionValue(expression, expression.id && expression.id.name);
     }
 
     evaluateArrowFunctionExpression(expression: ArrowFunctionExpression): Value {
@@ -549,7 +549,7 @@ export class Scope {
         throw new NotImplementedError('unsupported left value type ' + to.type, to, this);
     }
 
-    functionValue(statement: FunctionNode) {
+    functionValue(statement: FunctionNode, name: string | null = null) {
         const scope = this;
 
         return this.engine.functionValue((thisArg, argValues, callerNode, callerScope) => {
@@ -600,6 +600,6 @@ export class Scope {
             childScope.hoistVars(body);
         
             return childScope.evaluateStatements(body) || undefinedValue;
-        });
+        }, name);
     }
 }

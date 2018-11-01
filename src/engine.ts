@@ -12,14 +12,14 @@ export class Engine {
     readonly functionPrototype = this.objectConstructor();
 
     readonly globals = {
-        Object: this.functionValue(this.objectConstructor.bind(this), this.rootPrototype),
-        Function: this.functionValue(this.functionConstructor.bind(this), this.functionPrototype),
-        Array: this.functionValue(this.arrayConstructor.bind(this)),
-        String: this.functionValue(this.stringConstructor.bind(this)),
-        TypeError: this.functionValue(this.typeErrorConstructor.bind(this)),
-        Number: this.functionValue(this.numberConstructor.bind(this)),
-        Boolean: this.functionValue(this.booleanConstructor.bind(this)),
-        Symbol: this.functionValue(this.symbolConstructor.bind(this)),
+        Object: this.functionValue(this.objectConstructor.bind(this), 'Object', this.rootPrototype),
+        Function: this.functionValue(this.functionConstructor.bind(this), 'Function', this.functionPrototype),
+        Array: this.functionValue(this.arrayConstructor.bind(this), 'Array'),
+        String: this.functionValue(this.stringConstructor.bind(this), 'String'),
+        TypeError: this.functionValue(this.typeErrorConstructor.bind(this), 'TypeError'),
+        Number: this.functionValue(this.numberConstructor.bind(this), 'Number'),
+        Boolean: this.functionValue(this.booleanConstructor.bind(this), 'Boolean'),
+        Symbol: this.functionValue(this.symbolConstructor.bind(this), 'Symbol'),
         log: this.functionValue((thisArg, values, node, scope) => {
             console.log(...values.map(value => this.toString(value, node, scope)));
             return undefinedValue;
@@ -163,7 +163,7 @@ export class Engine {
         }
     }
 
-    functionValue(invoke: FunctionInternalFields['invoke'], prototype: ObjectValue = this.objectConstructor()): ObjectValue {
+    functionValue(invoke: FunctionInternalFields['invoke'], name: string | null = null, prototype: ObjectValue = this.objectConstructor()): ObjectValue {
         const internalFields: FunctionInternalFields = {
             invoke
         };
@@ -171,6 +171,9 @@ export class Engine {
         const properties: ObjectProperties = new Map([
             ['prototype', {
                 value: prototype
+            }],
+            ['name', {
+                value: name === null ? undefinedValue : stringValue(name)
             }]
         ]);
 
