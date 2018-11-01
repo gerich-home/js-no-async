@@ -31,15 +31,15 @@ function isFunctionNode(node: Node): boolean {
 export class Scope {
     constructor(
         readonly engine: Engine,
-        readonly definingFunction: CallStackEntry | null,
+        readonly callStackEntry: CallStackEntry | null,
         readonly parent: Scope | null,
         readonly script: ParsedScript | null,
         readonly thisValue: Value,
         readonly variables: Variables
     ) {}
     
-    createChildScope(script: ParsedScript | null, definingFunction: CallStackEntry | null, thisValue: Value, parameters: Variables): Scope {
-        return new Scope(this.engine, definingFunction, this, script, thisValue, parameters);
+    createChildScope(script: ParsedScript | null, callStackEntry: CallStackEntry | null, thisValue: Value, parameters: Variables): Scope {
+        return new Scope(this.engine, callStackEntry, this, script, thisValue, parameters);
     }
 
     evaluateScript(script: ParsedScript): void {

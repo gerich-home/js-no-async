@@ -1,5 +1,5 @@
 import { ThrowStatement } from "@babel/types";
-import { formatMessage } from "./globals";
+import { formatStack } from "./globals";
 import { Scope } from "./scope";
 import { Value } from "./types";
 
@@ -10,7 +10,7 @@ export class RuntimeError extends Error {
         scope: Scope
     ) {
         super();
-        this.message = `${tryGetThrownValue(scope, thrownValue, statement)}${formatMessage(statement, scope)}`;
+        this.message = `${tryGetThrownValue(scope, thrownValue, statement)}${formatStack(statement, scope)}`;
     }
 
     toString() {

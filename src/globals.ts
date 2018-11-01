@@ -1,5 +1,5 @@
 import { parse } from "@babel/parser";
-import { Node } from "@babel/types";
+import { Identifier, Node, SourceLocation } from "@babel/types";
 import { ParsedScript, undefinedValue } from "./factories";
 import { Scope } from "./scope";
 import { ObjectValue, Value } from "./types";
@@ -17,36 +17,66 @@ export function getObjectField(value: ObjectValue, propertyName: string): Value 
     return getObjectField(value.prototype, propertyName);
 }
 
-export function formatMessage(node: Node, scope: Scope): string {
-    return '\n> ' + formatNode(node, scope.script) + '\n' + formatStack(scope);
-}
-
-function formatStack(scope: Scope | null): string {
-    if (scope === null) {
-        return '> [[GLOBAL]]';
+export function formatStack(node: Node, scope: Scope): string {
+    if (scope === null || scope.callStackEntry === null) {
+        return formatStackLine(node, scope);
     }
 
-    const definingFunction = scope.definingFunction;
-    if (definingFunction === null) {
-        return formatStack(scope.parent);
-    }
-
-    return '> ' + formatNode(definingFunction.caller.node, definingFunction.caller.scope.script) + '\n' + formatStack(definingFunction.caller.scope);
+    const caller = scope.callStackEntry.caller;
+    
+    return formatStackLine(node, scope) + formatStack(caller.node, caller.scope);
 }
 
-function formatNode(node: Node, script: ParsedScript | null): string {
+function formatStackLine(node: Node, scope: Scope): string {
     if (node.loc === null) {
         return '';
     }
 
-    const start = node.loc.start;
-    const location = `${start.line}:${start.column}`;
+    return `\n    at ${formatNodeLocation(scope, node, node.loc)}`;
+}
+
+function formatNodeLocation(scope: Scope, node: Node, loc: SourceLocation) {
+    const location = formatNodeScriptLocation(scope, node, loc);
+
+    const functionName = getCalledFunctionName(scope);
     
-    if (script === null || node.start === null || node.end === null) {
-        return `at ${location}`;
+    return functionName === null ? location : `${functionName} (${location})`;
+}
+
+function formatNodeScriptLocation(scope: Scope, node: Node, loc: SourceLocation) {
+    const start = loc.start;
+    const lineCol = `${start.line}:${start.column}`;
+
+    if (scope.script === null || node.start === null || node.end === null) {
+        return lineCol;
+    }
+    
+    return `${scope.script.path}:${lineCol}`;
+}
+
+function getCalledFunctionName(scope: Scope): string | null {
+    const callStackEntry = scope.callStackEntry;
+
+    if (callStackEntry === null) {
+        return null;
     }
 
-    return `at ${script.path}:${location} ${script.sourceCode.slice(node.start, node.end)}`;
+    const functionNode = callStackEntry.callee.node;
+    switch(functionNode.type) {
+        case 'FunctionDeclaration':
+        case 'FunctionExpression':
+            if (functionNode.id === null) {
+                return null;
+            }
+            
+            return functionNode.id.name;
+        case 'ObjectMethod':
+            return (functionNode.key as Identifier).name;
+        case 'ArrowFunctionExpression':
+            return null;
+        default:
+            return null;
+    }
 }
 
 export function parseScript(sourceCode: string, path: string): ParsedScript {

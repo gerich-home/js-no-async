@@ -1,5 +1,5 @@
 import { Node } from "@babel/types";
-import { formatMessage } from "./globals";
+import { formatStack } from "./globals";
 import { Scope } from "./scope";
 
 export class NotImplementedError extends Error {
@@ -9,7 +9,7 @@ export class NotImplementedError extends Error {
         scope: Scope
     ) {
         super();
-        this.message = `${details}${formatMessage(node, scope)}`;
+        this.message = `${details}${formatStack(node, scope)}`;
     }
 
     toString() {
