@@ -1,16 +1,13 @@
-import { Node } from "@babel/types";
 import { formatStack } from "./globals";
-import { Scope } from "./scope";
-import { Value } from "./types";
+import { Context, Value } from "./types";
 
 export class RuntimeError extends Error {
     constructor(
         public thrownValue: Value,
-        node: Node,
-        scope: Scope
+        context: Context
     ) {
         super();
-        this.message = `${tryGetThrownValue(scope, thrownValue, node)}${formatStack(node, scope)}`;
+        this.message = `${tryGetThrownValue(thrownValue, context)}${formatStack(context)}`;
     }
 
     toString() {
@@ -18,9 +15,9 @@ export class RuntimeError extends Error {
     }
 }
 
-function tryGetThrownValue(scope: Scope, thrownValue: Value, statement: Node): string | null {
+function tryGetThrownValue(thrownValue: Value, context: Context): string | null {
     try {
-        return scope.engine.toString(thrownValue, statement, scope);
+        return context.scope.engine.toString(thrownValue, context);
     } catch {
         return null;
     }

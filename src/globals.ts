@@ -1,8 +1,7 @@
 import { parse } from "@babel/parser";
-import { Identifier, Node, SourceLocation } from "@babel/types";
+import { Identifier, SourceLocation } from "@babel/types";
 import { ParsedScript, undefinedValue } from "./factories";
-import { Scope } from "./scope";
-import { ObjectValue, Value } from "./types";
+import { Context, ObjectValue, Value } from "./types";
 
 export function getObjectField(value: ObjectValue, propertyName: string): Value {
     const property = value.ownProperties.get(propertyName);
@@ -17,45 +16,45 @@ export function getObjectField(value: ObjectValue, propertyName: string): Value 
     return getObjectField(value.prototype, propertyName);
 }
 
-export function formatStack(node: Node, scope: Scope): string {
-    if (scope === null || scope.callStackEntry === null) {
-        return formatStackLine(node, scope);
+export function formatStack(context: Context): string {
+    if (context.scope.callStackEntry === null) {
+        return formatStackLine(context);
     }
 
-    const caller = scope.callStackEntry.caller;
+    const caller = context.scope.callStackEntry.caller;
     
-    return formatStackLine(node, scope) + formatStack(caller.node, caller.scope);
+    return formatStackLine(context) + formatStack(caller);
 }
 
-function formatStackLine(node: Node, scope: Scope): string {
-    if (node.loc === null) {
+function formatStackLine(context: Context): string {
+    if (context.node.loc === null) {
         return '';
     }
 
-    return `\n    at ${formatNodeLocation(scope, node, node.loc)}`;
+    return `\n    at ${formatNodeLocation(context, context.node.loc)}`;
 }
 
-function formatNodeLocation(scope: Scope, node: Node, loc: SourceLocation) {
-    const location = formatNodeScriptLocation(scope, node, loc);
+function formatNodeLocation(context: Context, loc: SourceLocation) {
+    const location = formatNodeScriptLocation(context, loc);
 
-    const functionName = getCalledFunctionName(scope);
+    const functionName = getCalledFunctionName(context);
     
     return functionName === null ? location : `${functionName} (${location})`;
 }
 
-function formatNodeScriptLocation(scope: Scope, node: Node, loc: SourceLocation) {
+function formatNodeScriptLocation(context: Context, loc: SourceLocation) {
     const start = loc.start;
     const lineCol = `${start.line}:${start.column}`;
 
-    if (scope.script === null || node.start === null || node.end === null) {
+    if (context.scope.script === null || context.node.start === null || context.node.end === null) {
         return lineCol;
     }
     
-    return `${scope.script.path}:${lineCol}`;
+    return `${context.scope.script.path}:${lineCol}`;
 }
 
-function getCalledFunctionName(scope: Scope): string | null {
-    const callStackEntry = scope.callStackEntry;
+function getCalledFunctionName(context: Context): string | null {
+    const callStackEntry = context.scope.callStackEntry;
 
     if (callStackEntry === null) {
         return null;

@@ -1,15 +1,13 @@
-import { Node } from "@babel/types";
 import { formatStack } from "./globals";
-import { Scope } from "./scope";
+import { Context } from "./types";
 
 export class NotImplementedError extends Error {
     constructor(
         details: string,
-        node: Node,
-        scope: Scope
+        context: Context
     ) {
         super();
-        this.message = `${details}${formatStack(node, scope)}`;
+        this.message = `${details}${formatStack(context)}`;
     }
 
     toString() {

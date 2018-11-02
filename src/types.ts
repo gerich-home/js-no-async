@@ -1,4 +1,4 @@
-import { Node, Statement } from "@babel/types";
+import { ArrowFunctionExpression, FunctionDeclaration, FunctionExpression, Node, ObjectMethod, Statement } from "@babel/types";
 import { Scope } from "./scope";
 
 export type Value = NumberValue | StringValue | BooleanValue | NullValue | UndefinedValue | ObjectValue;
@@ -47,8 +47,8 @@ export type InternalObjectFields = {
 
 export type Variables =  Map<string, Value>;
 
-export type GeneralFunctionInvoke = (thisArg: Value, argValues: Value[], node: Node, scope: Scope) => Value;
-export type ObjectMethodInvoke = (thisArg: ObjectValue, argValues: Value[], node: Node, scope: Scope) => Value;
+export type GeneralFunctionInvoke = (thisArg: Value, argValues: Value[], context: Context) => Value;
+export type ObjectMethodInvoke = (thisArg: ObjectValue, argValues: Value[], context: Context) => Value;
 
 export type FunctionInternalFields = {
     invoke: GeneralFunctionInvoke;
@@ -56,4 +56,16 @@ export type FunctionInternalFields = {
 
 export type Block = {
     body: Statement[];
+};
+
+export type Context = {
+    node: Node;
+    scope: Scope;
+};
+
+export type FunctionNode = FunctionExpression | FunctionDeclaration | ObjectMethod | ArrowFunctionExpression;
+
+export type FunctionContext = {
+    node: FunctionNode;
+    scope: Scope;
 };
