@@ -16,7 +16,13 @@ export class Engine {
         Function: this.functionValue(this.functionConstructor.bind(this), 'Function', this.functionPrototype),
         Array: this.functionValue(this.arrayConstructor.bind(this), 'Array'),
         String: this.functionValue(this.stringConstructor.bind(this), 'String'),
-        TypeError: this.functionValue(this.typeErrorConstructor.bind(this), 'TypeError'),
+        Error: this.functionValue(this.errorConstructor.bind(this), 'Error'),
+        TypeError: this.functionValue(this.errorConstructor.bind(this), 'TypeError'),
+        EvalError: this.functionValue(this.errorConstructor.bind(this), 'EvalError'),
+        RangeError: this.functionValue(this.errorConstructor.bind(this), 'RangeError'),
+        ReferenceError: this.functionValue(this.errorConstructor.bind(this), 'ReferenceError'),
+        SyntaxError: this.functionValue(this.errorConstructor.bind(this), 'SyntaxError'),
+        URIError: this.functionValue(this.errorConstructor.bind(this), 'URIError'),
         Number: this.functionValue(this.numberConstructor.bind(this), 'Number'),
         Boolean: this.functionValue(this.booleanConstructor.bind(this), 'Boolean'),
         Symbol: this.functionValue(this.symbolConstructor.bind(this), 'Symbol'),
@@ -161,7 +167,7 @@ export class Engine {
         return stringValue(args.length === 0 ? '' : this.toString(args[0], context));
     }
 
-    typeErrorConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+    errorConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
         (thisArg).ownProperties.set('message', {
             value: args.length === 0 ? undefinedValue: args[0]
         });
