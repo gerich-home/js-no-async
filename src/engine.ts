@@ -5,7 +5,7 @@ import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
 import { Scope } from './scope';
-import { FunctionInternalFields, ObjectProperties, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value } from './types';
+import { FunctionInternalFields, GeneralFunctionInvoke, ObjectMethodInvoke, ObjectProperties, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value } from './types';
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
@@ -42,17 +42,13 @@ export class Engine {
         });
         
         this.rootPrototype.ownProperties.set('hasOwnProperty', {
-            value: this.functionValue((thisArg, args, node, scope) => {
-                if (thisArg.type === 'undefined') {
-                    return booleanValue(false);
-                } else {
-                    return booleanValue((thisArg as ObjectValue).ownProperties.has(this.toString(args[0], node, scope)));
-                }
+            value: this.objectMethod((thisArg, args, node, scope) => {
+                return booleanValue(thisArg.ownProperties.has(this.toString(args[0], node, scope)));
             })
         });
 
         this.functionPrototype.ownProperties.set('call', {
-            value: this.functionValue((thisArg, args, node, scope) => this.executeFunction(thisArg, args[0], args.slice(1), node, scope))
+            value: this.functionValue((thisArg, args, node, scope) => this.executeFunction(thisArg, args[0] as ObjectValue, args.slice(1), node, scope))
         });
 
         this.globals.Object.ownProperties.set('getOwnPropertyDescriptor', {
@@ -104,12 +100,43 @@ export class Engine {
             })
         });
 
-        (this.globals.Array.prototype as ObjectValue).ownProperties.set('push', {
-            value: this.functionValue(() => undefinedValue)
+        const arrayPrototype = this.globals.Array.prototype as ObjectValue;
+
+        arrayPrototype.ownProperties.set('push', {
+            value: this.objectMethod((thisArg, values, node, scope) => {
+                const length = this.toNumber(getObjectField(thisArg, 'length'), node, scope);
+                const newLength = numberValue(length + values.length);
+                
+                thisArg.ownProperties.set('length', {
+                    value: newLength
+                });
+
+                values.forEach((value, index) => {
+                    thisArg.ownProperties.set((length + index).toString(), {
+                        value
+                    });
+                });
+
+                return newLength;
+            })
+        });
+        arrayPrototype.ownProperties.set('join', {
+            value: this.objectMethod((thisArg, values, node, scope) => {
+                const length = this.toNumber(getObjectField(thisArg, 'length'), node, scope);
+
+                const separator = values.length === 0 ? ',' : this.toString(values[0], node, scope);
+
+                const arr = new Array(length);
+                for (let i = 0; i < length; i++) {
+                    arr[i] = this.toString(getObjectField(thisArg, i.toString()), node, scope);
+                }
+
+                return stringValue(arr.join(separator));
+            })
         });
 
         (this.globals.TypeError.prototype as ObjectValue).ownProperties.set('toString', {
-            value: this.functionValue((thisArg) => ((thisArg as ObjectValue).ownProperties.get('message') as ObjectPropertyDescriptor).value)
+            value: this.objectMethod((thisArg) => ((thisArg).ownProperties.get('message') as ObjectPropertyDescriptor).value)
         });
         
         Object.keys(this.globals)
@@ -130,22 +157,22 @@ export class Engine {
         return undefinedValue;
     }
 
-    stringConstructor(thisArg: Value, args: Value[], node: Node, scope: Scope): Value {
+    stringConstructor(thisArg: ObjectValue, args: Value[], node: Node, scope: Scope): Value {
         return stringValue(args.length === 0 ? '' : this.toString(args[0], node, scope));
     }
 
-    typeErrorConstructor(thisArg: Value, args: Value[], node: Node, scope: Scope): Value {
-        (thisArg as ObjectValue).ownProperties.set('message', {
+    typeErrorConstructor(thisArg: ObjectValue, args: Value[], node: Node, scope: Scope): Value {
+        (thisArg).ownProperties.set('message', {
             value: args.length === 0 ? undefinedValue: args[0]
         });
         return undefinedValue;
     }
 
-    numberConstructor(thisArg: Value, args: Value[], node: Node, scope: Scope): Value {
-        return numberValue(args.length === 0 ? 0 : this.toNumber(args[0]));
+    numberConstructor(thisArg: ObjectValue, args: Value[], node: Node, scope: Scope): Value {
+        return numberValue(args.length === 0 ? 0 : this.toNumber(args[0], node, scope));
     }
 
-    booleanConstructor(thisArg: Value, args: Value[], node: Node, scope: Scope): Value {
+    booleanConstructor(thisArg: ObjectValue, args: Value[], node: Node, scope: Scope): Value {
         return booleanValue(args.length === 0 ? false : this.toBoolean(args[0]));
     }
 
@@ -153,7 +180,7 @@ export class Engine {
         return undefinedValue;
     }
 
-    functionConstructor(thisArg: Value, values: Value[], node: Node, scope: Scope): Value {
+    functionConstructor(thisArg: ObjectValue, values: Value[], node: Node, scope: Scope): Value {
         if (!values.every(x => x.type === 'string')) {
             throw new NotImplementedError('function constructor arguments must be strings', node, scope);
         }
@@ -170,7 +197,17 @@ export class Engine {
         }
     }
 
-    functionValue(invoke: FunctionInternalFields['invoke'], name: string | null = null, prototype: ObjectValue = this.objectConstructor()): ObjectValue {
+    objectMethod(invoke: ObjectMethodInvoke, name: string | null = null, prototype: ObjectValue = this.objectConstructor()): ObjectValue {
+        return this.functionValue((thisArg, argValues, node, scope) => {
+            if (thisArg.type !== 'object') {
+                throw new NotImplementedError('calling object method with incorrect thisArg ' + thisArg.type, node, scope);
+            }
+
+            return invoke(thisArg, argValues, node, scope);
+        }, name, prototype);
+    }
+
+    functionValue(invoke: GeneralFunctionInvoke, name: string | null = null, prototype: ObjectValue = this.objectConstructor()): ObjectValue {
         const internalFields: FunctionInternalFields = {
             invoke
         };
@@ -226,7 +263,7 @@ export class Engine {
         }
     }
 
-    toNumber(value: Value): number {
+    toNumber(value: Value, node: Node, scope: Scope): number {
         switch(value.type) {
             case 'string':
                 return Number(value.value);
@@ -237,7 +274,7 @@ export class Engine {
             case 'null':
                 return 0;
             case 'object':
-                return this.toNumber(this.executeMethod(value, 'valueOf', [], null as any, null as any)); // TODO nulls
+                return this.toNumber(this.executeMethod(value, 'valueOf', [], node, scope), node, scope);
             case 'undefined':
                 return NaN;
         }
@@ -260,10 +297,10 @@ export class Engine {
     }
 
     newObject(node: Node, scope: Scope): ObjectValue {
-        return this.constructObject(this.globals.Object, [], node, scope) as ObjectValue;
+        return this.constructObject(this.globals.Object, [], node, scope);
     }
 
-    constructObject(constructor: Value, args: Value[], node: Node, scope: Scope): Value {
+    constructObject(constructor: Value, args: Value[], node: Node, scope: Scope): ObjectValue {
         if (constructor.type !== 'object') {
             throw new NotImplementedError('new is unsupported for ' + constructor.type, node, scope);
         }
@@ -282,6 +319,10 @@ export class Engine {
         
         const result = this.executeFunction(constructor, thisArg, args, node, scope);
         
-        return result === undefinedValue ? thisArg : result;
+        if (result.type !== 'object' && result.type !== 'undefined') {
+            throw new NotImplementedError('constructor result should be object or undefined ' + constructor.type, node, scope);
+        }
+
+        return result.type === 'undefined' ? thisArg : result;
     }
 }

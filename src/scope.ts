@@ -329,9 +329,9 @@ export class Scope {
 
         switch (expression.operator) {
             case '+':
-                return numberValue(this.engine.toNumber(argument));
+                return numberValue(this.engine.toNumber(argument, expression, this));
             case '-':
-                return numberValue(-this.engine.toNumber(argument));
+                return numberValue(-this.engine.toNumber(argument, expression, this));
             case '!':
                 return booleanValue(!this.engine.toBoolean(argument));
             case 'typeof':
@@ -364,24 +364,24 @@ export class Scope {
                 if (left.type === 'string' || right.type === 'string') {
                     return stringValue(this.engine.toString(left, expression, this) + this.engine.toString(right, expression, this));
                 } else {
-                    return numberValue(this.engine.toNumber(left) + this.engine.toNumber(right));
+                    return numberValue(this.engine.toNumber(left, expression, this) + this.engine.toNumber(right, expression, this));
                 }
             case '-':
-                return numberValue(this.engine.toNumber(left) - this.engine.toNumber(right));
+                return numberValue(this.engine.toNumber(left, expression, this) - this.engine.toNumber(right, expression, this));
             case '*':
-                return numberValue(this.engine.toNumber(left) * this.engine.toNumber(right));
+                return numberValue(this.engine.toNumber(left, expression, this) * this.engine.toNumber(right, expression, this));
             case '**':
-                return numberValue(this.engine.toNumber(left) ** this.engine.toNumber(right));
+                return numberValue(this.engine.toNumber(left, expression, this) ** this.engine.toNumber(right, expression, this));
             case '/':
-                return numberValue(this.engine.toNumber(left) / this.engine.toNumber(right));
+                return numberValue(this.engine.toNumber(left, expression, this) / this.engine.toNumber(right, expression, this));
             case '===':
                 return booleanValue(this.strictEqual(left, right));
             case '!==':
                 return booleanValue(!this.strictEqual(left, right));
             case '>':
-                return booleanValue(this.engine.toNumber(left) > this.engine.toNumber(right));
+                return booleanValue(this.engine.toNumber(left, expression, this) > this.engine.toNumber(right, expression, this));
             case '<':
-                return booleanValue(this.engine.toNumber(left) < this.engine.toNumber(right));
+                return booleanValue(this.engine.toNumber(left, expression, this) < this.engine.toNumber(right, expression, this));
             case 'instanceof':
                 return booleanValue(this.isInstanceOf(left, right, expression));
         }

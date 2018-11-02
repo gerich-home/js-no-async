@@ -47,8 +47,11 @@ export type InternalObjectFields = {
 
 export type Variables =  Map<string, Value>;
 
+export type GeneralFunctionInvoke = (thisArg: Value, argValues: Value[], node: Node, scope: Scope) => Value;
+export type ObjectMethodInvoke = (thisArg: ObjectValue, argValues: Value[], node: Node, scope: Scope) => Value;
+
 export type FunctionInternalFields = {
-    invoke(thisArg: Value, argValues: Value[], node: Node, scope: Scope): Value;
+    invoke: GeneralFunctionInvoke;
 };
 
 export type Block = {
