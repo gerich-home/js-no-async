@@ -59,10 +59,10 @@ export class Scope {
                 if (state.functionDepth === 0) {
                     switch(node.type) {
                         case 'FunctionDeclaration':
-                            self.evaluateFunctionDeclaration(node);
+                            self.hoistFunctionDeclaration(node);
                         break;
                         case 'VariableDeclaration':
-                            self.evaluateVariableDeclaration(node);
+                            self.hoistVariableDeclaration(node);
                         break;
                     }
                 }
@@ -161,13 +161,12 @@ export class Scope {
 
     evaluateVariableDeclaration(statement: VariableDeclaration): null {
         for(const declaration of statement.declarations) {
-            const initialValue = declaration.init === null ?
-                undefinedValue :
-                this.evaluateExpression(declaration.init);
-
             switch(declaration.id.type) {
                 case 'Identifier':
-                    this.variables.set(declaration.id.name, initialValue);
+                    if (declaration.init !== null){
+                        this.variables.set(declaration.id.name, this.evaluateExpression(declaration.init));
+                    }
+
                     break;
                 default:
                     throw new NotImplementedError('unsupported variable declaration type: ' + declaration.id.type, statement, this);
@@ -177,7 +176,21 @@ export class Scope {
         return null;
     }
 
-    evaluateFunctionDeclaration(statement: FunctionDeclaration): null {
+    hoistVariableDeclaration(statement: VariableDeclaration): null {
+        for(const declaration of statement.declarations) {
+            switch(declaration.id.type) {
+                case 'Identifier':
+                    this.variables.set(declaration.id.name, undefinedValue);
+                    break;
+                default:
+                    throw new NotImplementedError('unsupported variable declaration type: ' + declaration.id.type, statement, this);
+            }
+        }
+
+        return null;
+    }
+
+    hoistFunctionDeclaration(statement: FunctionDeclaration): null {
         if(statement.id === null) {
             throw new NotImplementedError('wrong function declaration', statement, this);
         } else {

@@ -5,7 +5,7 @@ import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
 import { Scope } from './scope';
-import { FunctionInternalFields, ObjectProperties, ObjectValue, StringValue, UndefinedValue, Value } from './types';
+import { FunctionInternalFields, ObjectProperties, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value } from './types';
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
@@ -107,6 +107,10 @@ export class Engine {
         (this.globals.Array.prototype as ObjectValue).ownProperties.set('push', {
             value: this.functionValue(() => undefinedValue)
         });
+
+        (this.globals.TypeError.prototype as ObjectValue).ownProperties.set('toString', {
+            value: this.functionValue((thisArg) => ((thisArg as ObjectValue).ownProperties.get('message') as ObjectPropertyDescriptor).value)
+        });
         
         Object.keys(this.globals)
             .forEach((name) => {
@@ -131,6 +135,9 @@ export class Engine {
     }
 
     typeErrorConstructor(thisArg: Value, args: Value[], node: Node, scope: Scope): Value {
+        (thisArg as ObjectValue).ownProperties.set('message', {
+            value: args.length === 0 ? undefinedValue: args[0]
+        });
         return undefinedValue;
     }
 
