@@ -510,7 +510,7 @@ export class Scope {
         const value = this.engine.toNumber(this.evaluateExpression(expression.argument), this.createContext(expression));
         const newValue = numberValue((expression.operator === '++' ? 1 : (-1)) + value);
         this.assignValue(newValue, expression.argument as any);
-        return expression.prefix ? newValue : value;
+        return expression.prefix ? newValue : numberValue(value);
     } 
     
     evaluateIdentifier(expression: Identifier): Value {
