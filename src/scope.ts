@@ -1,4 +1,4 @@
-import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration } from '@babel/types';
+import { UpdateExpression, ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -142,6 +142,8 @@ export class Scope {
                 return this.evaluateMemberExpression(expression);
             case 'AssignmentExpression':
                 return this.evaluateAssignmentExpression(expression);
+            case 'UpdateExpression':
+                return this.evaluateUpdateExpression(expression);
             case 'Identifier':
                 return this.evaluateIdentifier(expression);
             case 'ThisExpression':
@@ -503,6 +505,13 @@ export class Scope {
         this.assignValue(value, expression.left);
         return value;
     }
+    
+    evaluateUpdateExpression(expression: UpdateExpression): Value {
+        const value = this.engine.toNumber(this.evaluateExpression(expression.argument), this.createContext(expression));
+        const newValue = numberValue((expression.operator === '++' ? 1 : (-1)) + value);
+        this.assignValue(newValue, this.argument as any);
+        return expression.prefix ? newValue : value;
+    } 
     
     evaluateIdentifier(expression: Identifier): Value {
         const variable = this.variables.get(expression.name);
