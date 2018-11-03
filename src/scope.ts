@@ -509,7 +509,7 @@ export class Scope {
     evaluateUpdateExpression(expression: UpdateExpression): Value {
         const value = this.engine.toNumber(this.evaluateExpression(expression.argument), this.createContext(expression));
         const newValue = numberValue((expression.operator === '++' ? 1 : (-1)) + value);
-        this.assignValue(newValue, this.argument as any);
+        this.assignValue(newValue, expression.argument as any);
         return expression.prefix ? newValue : value;
     } 
     
