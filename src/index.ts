@@ -67,7 +67,7 @@ async function run() {
             engine.runGlobalCode(parseScript(code, file));
         
             if (config.negative) {
-                console.log('Unexpected positive result');
+                //console.log('Unexpected positive result');
                 console.log(`- FAILED`);
                 counts.failed++;
             } else {
@@ -79,7 +79,7 @@ async function run() {
                 console.log(`+ PASS`);
                 counts.passed++;
             } else {
-                console.log('Engine error', e.message);
+                //console.log('Engine error', e.message);
                 console.log(`- FAILED`);
                 counts.failed++;
             }
