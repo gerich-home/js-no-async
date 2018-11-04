@@ -1,4 +1,4 @@
-import { UpdateExpression, ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration } from '@babel/types';
+import { UpdateExpression, ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration, ForInStatement } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -28,8 +28,8 @@ export class Scope {
         readonly script: ParsedScript | null,
         readonly thisValue: Value,
         readonly variables: Variables
-    ) {}
-    
+    ) { }
+
     createChildScope(script: ParsedScript | null, callStackEntry: CallStackEntry | null, thisValue: Value, parameters: Variables): Scope {
         return new Scope(this.engine, callStackEntry, this, script, thisValue, parameters);
     }
@@ -45,20 +45,20 @@ export class Scope {
         const state = {
             functionDepth: 0
         };
-        
+
         traverse(block, {
             enter(node, ancestors, state) {
                 if (state.functionDepth === 0) {
-                    switch(node.type) {
+                    switch (node.type) {
                         case 'FunctionDeclaration':
                             self.hoistFunctionDeclaration(node);
-                        break;
+                            break;
                         case 'VariableDeclaration':
                             self.hoistVariableDeclaration(node);
-                        break;
+                            break;
                     }
                 }
-                
+
                 if (isFunctionNode(node)) {
                     state.functionDepth++;
                 }
@@ -84,7 +84,7 @@ export class Scope {
     }
 
     evaluateStatement(statement: Statement): Value | null {
-        switch(statement.type) {
+        switch (statement.type) {
             case 'VariableDeclaration':
                 return this.evaluateVariableDeclaration(statement);
             case 'FunctionDeclaration':
@@ -97,6 +97,8 @@ export class Scope {
                 return this.evaluateIfStatement(statement);
             case 'ForStatement':
                 return this.evaluateForStatement(statement);
+            case 'ForInStatement':
+                return this.evaluateForInStatement(statement);
             case 'ReturnStatement':
                 return this.evaluateReturnStatement(statement);
             case 'ThrowStatement':
@@ -109,7 +111,7 @@ export class Scope {
     }
 
     evaluateExpression(expression: Expression | PatternLike | SpreadElement | JSXNamespacedName): Value {
-        switch(expression.type) {
+        switch (expression.type) {
             case 'NumericLiteral':
                 return this.evaluateNumericLiteral(expression);
             case 'StringLiteral':
@@ -154,10 +156,10 @@ export class Scope {
     }
 
     evaluateVariableDeclaration(statement: VariableDeclaration): null {
-        for(const declaration of statement.declarations) {
-            switch(declaration.id.type) {
+        for (const declaration of statement.declarations) {
+            switch (declaration.id.type) {
                 case 'Identifier':
-                    if (declaration.init !== null){
+                    if (declaration.init !== null) {
                         this.variables.set(declaration.id.name, this.evaluateExpression(declaration.init));
                     }
 
@@ -171,8 +173,8 @@ export class Scope {
     }
 
     hoistVariableDeclaration(statement: VariableDeclaration): null {
-        for(const declaration of statement.declarations) {
-            switch(declaration.id.type) {
+        for (const declaration of statement.declarations) {
+            switch (declaration.id.type) {
                 case 'Identifier':
                     this.variables.set(declaration.id.name, undefinedValue);
                     break;
@@ -185,7 +187,7 @@ export class Scope {
     }
 
     hoistFunctionDeclaration(statement: FunctionDeclaration): null {
-        if(statement.id === null) {
+        if (statement.id === null) {
             throw new NotImplementedError('wrong function declaration', this.createContext(statement));
         } else {
             this.variables.set(statement.id.name, this.functionValue(statement, statement.id.name));
@@ -214,11 +216,11 @@ export class Scope {
 
     evaluateTryStatement(statement: TryStatement): Value | null {
         let trueError = false;
-        
+
         try {
             return this.evaluateBlockStatement(statement.block, this.thisValue, new Map());
-        } catch(err) {
-            if(err instanceof RuntimeError && statement.handler !== null) {
+        } catch (err) {
+            if (err instanceof RuntimeError && statement.handler !== null) {
                 return this.evaluateBlockStatement(statement.handler.body, this.thisValue, statement.handler.param === null ? new Map() : new Map([
                     [statement.handler.param.name, err.thrownValue]
                 ]));
@@ -235,7 +237,7 @@ export class Scope {
 
     evaluateBlockStatement(statement: BlockStatement, thisArg: Value, parameters: Variables): Value | null {
         const childScope = this.createChildScope(this.script, this.callStackEntry, thisArg, parameters);
-        
+
         return childScope.evaluateStatements(statement);
     }
 
@@ -244,13 +246,13 @@ export class Scope {
 
         if (this.engine.toBoolean(test)) {
             return this.evaluateStatement(statement.consequent);
-        } else if(statement.alternate !== null) {
+        } else if (statement.alternate !== null) {
             return this.evaluateStatement(statement.alternate);
         }
 
         return null;
     }
-    
+
     evaluateForStatement(statement: ForStatement): Value | null {
         const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, new Map());
 
@@ -262,9 +264,9 @@ export class Scope {
             }
         }
 
-        while(statement.test === null ? true : this.engine.toBoolean(childScope.evaluateExpression(statement.test))) {
+        while (statement.test === null ? true : this.engine.toBoolean(childScope.evaluateExpression(statement.test))) {
             const result = childScope.evaluateStatement(statement.body);
-            
+
             if (result !== null) {
                 return result;
             }
@@ -273,7 +275,32 @@ export class Scope {
                 childScope.evaluateExpression(statement.update);
             }
         }
-        
+
+        return null;
+    }
+
+    evaluateForInStatement(statement: ForInStatement): Value | null {
+        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, new Map());
+
+        if (statement.left.type !== 'VariableDeclaration') {
+            throw new NotImplementedError('unsupported type of variable declaration in for of: ' + statement.left.type, this.createContext(statement));
+        }
+
+        const iterated = this.evaluateExpression(statement.right);
+
+        if (iterated.type !== 'object') {
+            throw new NotImplementedError('unsupported type of iterated object in for of: ' + iterated.type, this.createContext(statement));
+        }
+
+        for (let p of iterated.ownProperties.entries()) {
+            this.assignValue(stringValue(p[0]), statement.left.declarations[0].id);
+            const result = childScope.evaluateStatement(statement.body);
+
+            if (result !== null) {
+                return result;
+            }
+        }
+
         return null;
     }
 
@@ -301,10 +328,10 @@ export class Scope {
     evaluateNewExpression(expression: NewExpression): Value {
         const callee = this.evaluateExpression(expression.callee);
         const args = expression.arguments.map(arg => this.evaluateExpression(arg));
-        
+
         return this.engine.constructObject(callee, args, this.createContext(expression));
     }
-    
+
     getThisArg(callee: Expression): Value {
         switch (callee.type) {
             case 'MemberExpression':
@@ -336,7 +363,7 @@ export class Scope {
     }
 
     typeofValue(value: Value): Value['type'] | 'function' {
-        switch(value.type) {
+        switch (value.type) {
             case 'null':
                 return 'object';
             case 'object':
@@ -402,10 +429,10 @@ export class Scope {
             throw new NotImplementedError(`Right-hand side of 'instanceof' is not an object`, this.createContext(expression));
         }
 
-        if(left.type !== 'object') {
+        if (left.type !== 'object') {
             return false;
         }
-        
+
         const prototype = right.ownProperties.get('prototype');
 
         return left.prototype === (prototype && prototype.value);
@@ -425,7 +452,7 @@ export class Scope {
         if (type === 'number' || type === 'boolean' || type === 'string') {
             return (left as any).value === (right as any).value;
         }
-        
+
         return left === right;
     }
 
@@ -433,15 +460,15 @@ export class Scope {
         const selectedExpression = this.engine.toBoolean(this.evaluateExpression(expression.test)) ?
             expression.consequent :
             expression.alternate;
-        
+
         return this.evaluateExpression(selectedExpression);
     }
 
     evaluateObjectExpression(expression: ObjectExpression): ObjectValue {
         const fields: ObjectProperties = new Map();
 
-        for(const property of expression.properties) {
-            switch(property.type) {
+        for (const property of expression.properties) {
+            switch (property.type) {
                 case 'ObjectProperty':
                     const key: Identifier = property.key;
                     fields.set(key.name, {
@@ -471,10 +498,10 @@ export class Scope {
         array.ownProperties.set('length', {
             value: numberValue(expression.elements.length)
         });
-        
+
         expression.elements.forEach((value, index) => {
             array.ownProperties.set(index.toString(), {
-                value:  value === null ? undefinedValue : this.evaluateExpression(value)
+                value: value === null ? undefinedValue : this.evaluateExpression(value)
             });
         });
 
@@ -505,14 +532,14 @@ export class Scope {
         this.assignValue(value, expression.left);
         return value;
     }
-    
+
     evaluateUpdateExpression(expression: UpdateExpression): Value {
         const value = this.engine.toNumber(this.evaluateExpression(expression.argument), this.createContext(expression));
         const newValue = numberValue((expression.operator === '++' ? 1 : (-1)) + value);
         this.assignValue(newValue, expression.argument as any);
         return expression.prefix ? newValue : numberValue(value);
-    } 
-    
+    }
+
     evaluateIdentifier(expression: Identifier): Value {
         const variable = this.variables.get(expression.name);
 
@@ -553,7 +580,7 @@ export class Scope {
     }
 
     assignValue(value: Value, to: LVal): void {
-        switch(to.type) {
+        switch (to.type) {
             case 'Identifier':
                 return this.assignIdentifier(value, to);
             case 'MemberExpression':
@@ -568,7 +595,7 @@ export class Scope {
 
         return this.engine.functionValue((thisArg, argValues, caller) => {
             let index = 0;
-            
+
             const args = scope.engine.newObject(caller);
             args.ownProperties.set('length', {
                 value: numberValue(argValues.length)
@@ -578,14 +605,14 @@ export class Scope {
                 ['arguments', args]
             ]);
 
-            for(const parameter of statement.params) {
-                switch(parameter.type) {
+            for (const parameter of statement.params) {
+                switch (parameter.type) {
                     case 'Identifier':
                         const argumentValue = index < argValues.length ?
                             argValues[index] :
                             undefinedValue;
                         variables.set(parameter.name, argumentValue);
-                    break;
+                        break;
                     default:
                         throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported', scope.createContext(parameter));
                 }
@@ -605,11 +632,11 @@ export class Scope {
                     scope
                 }
             }, thisValue, variables);
-    
+
             const body = statement.body as BlockStatement;
 
             childScope.hoistVars(body);
-        
+
             return childScope.evaluateStatements(body) || undefinedValue;
         }, name);
     }
