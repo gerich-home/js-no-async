@@ -1,5 +1,5 @@
 import { File } from "@babel/types";
-import { BooleanValue, InternalObjectFields, NullValue, NumberValue, ObjectProperties, ObjectPrototypeValue, ObjectValue, StringValue, UndefinedValue } from "./types";
+import { BooleanValue, InternalObjectFields, NullValue, NumberValue, ObjectProperties, ObjectPrototypeValue, ObjectValue, StringValue, UndefinedValue, SuccessfulStatementResult, BreakStatementResult, ReturnStatementResult, Value, ThrowStatementResult, Context } from "./types";
 
 export type ParsedScript = {
     file: File;
@@ -43,4 +43,27 @@ export const nullValue: NullValue = {
 
 export const undefinedValue: UndefinedValue = {
     type: 'undefined'
+};
+
+export const successResult: SuccessfulStatementResult = {
+    type: 'success'
+};
+
+export const breakResult: BreakStatementResult = {
+    type: 'break'
+};
+
+export function returnResult(returnedValue: Value): ReturnStatementResult {
+    return {
+        type: 'return',
+        returnedValue
+    };
+};
+
+export function throwResult(thrownValue: Value, context: Context): ThrowStatementResult {
+    return {
+        type: 'throw',
+        thrownValue,
+        context
+    };
 };

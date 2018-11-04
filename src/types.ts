@@ -47,6 +47,31 @@ export type InternalObjectFields = {
 
 export type Variables =  Map<string, Value>;
 
+export type SuccessfulStatementResult = {
+    type: 'success';
+};
+
+export type BreakStatementResult = {
+    type: 'break';
+};
+
+export type ReturnStatementResult = {
+    type: 'return';
+    returnedValue: Value;
+};
+
+export type ThrowStatementResult = {
+    type: 'throw';
+    thrownValue: Value;
+    context: Context;
+};
+
+export type StatementResult =
+    SuccessfulStatementResult |
+    BreakStatementResult |
+    ReturnStatementResult |
+    ThrowStatementResult;
+
 export type GeneralFunctionInvoke = (thisArg: Value, argValues: Value[], context: Context) => Value;
 export type ObjectMethodInvoke = (thisArg: ObjectValue, argValues: Value[], context: Context) => Value;
 
