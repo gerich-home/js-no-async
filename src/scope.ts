@@ -243,7 +243,7 @@ export class Scope {
         return childScope.evaluateStatements(statement);
     }
 
-    evaluateIfStatement(statement: IfStatement): Value | null {
+    evaluateIfStatement(statement: IfStatement): Value | 'break' | null {
         const test = this.evaluateExpression(statement.test);
 
         if (this.engine.toBoolean(test)) {
@@ -255,7 +255,7 @@ export class Scope {
         return null;
     }
 
-    evaluateForStatement(statement: ForStatement): Value | null {
+    evaluateForStatement(statement: ForStatement): Value | 'break' | null {
         const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, new Map());
 
         if (statement.init !== null) {
@@ -281,7 +281,7 @@ export class Scope {
         return null;
     }
 
-    evaluateForInStatement(statement: ForInStatement): Value | null {
+    evaluateForInStatement(statement: ForInStatement): Value | 'break' | null {
         const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, new Map());
 
         if (statement.left.type !== 'VariableDeclaration') {
