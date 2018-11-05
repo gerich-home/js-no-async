@@ -270,7 +270,7 @@ export class Scope {
             const result = childScope.evaluateStatement(statement.body);
 
             if (result !== null) {
-                return result;
+                return (result === 'break') ? null : result;
             }
 
             if (statement.update !== null) {
@@ -299,7 +299,7 @@ export class Scope {
             const result = childScope.evaluateStatement(statement.body);
 
             if (result !== null) {
-                return result;
+                return (result === 'break') ? null : result;
             }
         }
 
