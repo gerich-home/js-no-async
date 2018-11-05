@@ -216,7 +216,7 @@ export class Scope {
         }
     }
 
-    evaluateTryStatement(statement: TryStatement): Value | null {
+    evaluateTryStatement(statement: TryStatement): Value | 'break' | null {
         let trueError = false;
 
         try {
