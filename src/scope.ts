@@ -71,7 +71,7 @@ export class Scope {
         }, state);
     }
 
-    evaluateStatements(block: Block): Value | null {
+    evaluateStatements(block: Block): Value | null | 'break' {
         for (const statement of block.body) {
             const result = this.evaluateStatement(statement);
 
@@ -83,14 +83,14 @@ export class Scope {
         return null;
     }
 
-    evaluateStatement(statement: Statement): Value | null {
+    evaluateStatement(statement: Statement): Value | null | 'break' {
         switch (statement.type) {
             case 'VariableDeclaration':
                 return this.evaluateVariableDeclaration(statement);
             case 'FunctionDeclaration':
                 return null;
             case 'BreakStatement':
-                return null;
+                return 'break';
             case 'ExpressionStatement':
                 return this.evaluateExpressionStatement(statement);
             case 'BlockStatement':
@@ -237,7 +237,7 @@ export class Scope {
         }
     }
 
-    evaluateBlockStatement(statement: BlockStatement, thisArg: Value, parameters: Variables): Value | null {
+    evaluateBlockStatement(statement: BlockStatement, thisArg: Value, parameters: Variables): Value | 'break' | null {
         const childScope = this.createChildScope(this.script, this.callStackEntry, thisArg, parameters);
 
         return childScope.evaluateStatements(statement);
@@ -639,7 +639,13 @@ export class Scope {
 
             childScope.hoistVars(body);
 
-            return childScope.evaluateStatements(body) || undefinedValue;
+            const result = childScope.evaluateStatements(body);
+            
+            if (result === 'break') {
+                throw new NotImplementedError('return should not be break', scope.createContext(statement));
+            }
+            
+            return result || undefinedValue;
         }, name);
     }
 
