@@ -5,7 +5,7 @@ import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
 import { Scope } from './scope';
-import { Context, FunctionInternalFields, GeneralFunctionInvoke, ObjectMethodInvoke, ObjectProperties, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value } from './types';
+import { Context, FunctionInternalFields, GeneralFunctionInvoke, ObjectMethodInvoke, ObjectProperties, ObjectValue, StringValue, UndefinedValue, Value } from './types';
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
@@ -35,120 +35,97 @@ export class Engine {
     readonly globalScope = new Scope(this, null, null, null, undefinedValue, new Map());
 
     constructor() {
-        this.rootPrototype.ownProperties.set('toString', {
-            value: this.functionValue(() => stringValue('[object Object]'))
-        });
-        
-        this.rootPrototype.ownProperties.set('valueOf', {
-            value: this.functionValue(thisArg => thisArg)
-        });
+        this.defineProperty(this.rootPrototype, 'toString', this.functionValue(() => stringValue('[object Object]')));
+        this.defineProperty(this.rootPrototype, 'valueOf', this.functionValue(thisArg => thisArg));
+        this.defineProperty(this.rootPrototype, 'constructor', this.globals.Object);
+        this.defineProperty(this.rootPrototype, 'hasOwnProperty', this.objectMethod((thisArg, args, context) => booleanValue(thisArg.ownProperties.has(this.toString(args[0], context)))));
+        this.defineProperty(this.functionPrototype, 'call', this.objectMethod((thisArg, args, context) => this.executeFunction(thisArg, args[0] as ObjectValue, args.slice(1), context)));
 
-        this.rootPrototype.ownProperties.set('constructor', {
-            value: this.globals.Object
-        });
-        
-        this.rootPrototype.ownProperties.set('hasOwnProperty', {
-            value: this.objectMethod((thisArg, args, context) => {
-                return booleanValue(thisArg.ownProperties.has(this.toString(args[0], context)));
-            })
-        });
+        this.defineProperty(this.globals.Object, 'getOwnPropertyDescriptor', this.functionValue((thisArg, args, context) => {
+            const object = args[0];
+            
+            if (object.type !== 'object') {
+                throw this.newTypeError('getOwnPropertyDescriptor should be called for object value', context);
+            }
 
-        this.functionPrototype.ownProperties.set('call', {
-            value: this.functionValue((thisArg, args, context) => this.executeFunction(thisArg, args[0] as ObjectValue, args.slice(1), context))
-        });
+            const descriptor = object.ownProperties.get(this.toString(args[1], context));
 
-        this.globals.Object.ownProperties.set('getOwnPropertyDescriptor', {
-            value: this.functionValue((thisArg, args, context) => {
-                const obj = args[0];
-                if (obj.type !== 'object') {
-                    throw new RuntimeError(this.constructObject(this.globals.TypeError, [
-                        stringValue('defineProperty should be called for object value')
-                    ], context), context);
-                }
-    
-                const descriptor = obj.ownProperties.get(this.toString(args[1], context));
-    
-                if (descriptor === undefined) {
-                    return undefinedValue;
-                }
+            if (descriptor === undefined) {
+                return undefinedValue;
+            }
 
-                const value = descriptor.value;
+            const value = descriptor.value;
 
-                const resultDescriptor = this.newObject(context);
+            const resultDescriptor = this.newObject(context);
 
-                resultDescriptor.ownProperties.set('value', {
-                    value
-                });
+            this.defineProperty(resultDescriptor, 'value', value);
 
-                return resultDescriptor;
-            })
-        });
+            return resultDescriptor;
+        }));
 
-        this.globals.Object.ownProperties.set('defineProperty', {
-            value: this.functionValue((thisArg, args, context) => {
-                const object = args[0];
-                if (object.type !== 'object') {
-                    throw new RuntimeError(stringValue('defineProperty should be called for object value'), context);
-                }
-    
-                const descriptor = args[2];
-                if (descriptor.type !== 'object') {
-                    throw new NotImplementedError('defineProperty descriptor arg should be object value', context);
-                }
-    
-                const value = descriptor.ownProperties.get('value');
+        this.defineProperty(this.globals.Object, 'defineProperty', this.functionValue((thisArg, args, context) => {
+            const object = args[0];
+            if (object.type !== 'object') {
+                throw this.newTypeError('defineProperty should be called for object value', context);
+            }
 
-                object.ownProperties.set(this.toString(args[1], context), {
-                    value: value === undefined ? undefinedValue : value.value
-                });
-    
-                return object;
-            })
-        });
+            const descriptor = args[2];
+            if (descriptor.type !== 'object') {
+                throw new NotImplementedError('defineProperty descriptor arg should be object value', context);
+            }
+
+            const value = descriptor.ownProperties.get('value');
+            const newValue = value === undefined ? undefinedValue : value.value;
+
+            this.defineProperty(object, this.toString(args[1], context), newValue);
+
+            return object;
+        }));
 
         const arrayPrototype = this.globals.Array.prototype as ObjectValue;
 
-        arrayPrototype.ownProperties.set('push', {
-            value: this.objectMethod((thisArg, values, context) => {
-                const length = this.toNumber(getObjectField(thisArg, 'length'), context);
-                const newLength = numberValue(length + values.length);
-                
-                thisArg.ownProperties.set('length', {
-                    value: newLength
-                });
+        this.defineProperty(arrayPrototype, 'push', this.objectMethod((thisArg, values, context) => {
+            const length = this.toNumber(getObjectField(thisArg, 'length'), context);
+            const newLength = numberValue(length + values.length);
+            
+            this.defineProperty(thisArg, 'length', newLength);
 
-                values.forEach((value, index) => {
-                    thisArg.ownProperties.set((length + index).toString(), {
-                        value
-                    });
-                });
+            values.forEach((value, index) => this.defineProperty(thisArg, (length + index).toString(), value));
 
-                return newLength;
-            })
-        });
-        arrayPrototype.ownProperties.set('join', {
-            value: this.objectMethod((thisArg, values, context) => {
-                const length = this.toNumber(getObjectField(thisArg, 'length'), context);
+            return newLength;
+        }));
 
-                const separator = values.length === 0 ? ',' : this.toString(values[0], context);
+        this.defineProperty(arrayPrototype, 'join', this.objectMethod((thisArg, values, context) => {
+            const length = this.toNumber(getObjectField(thisArg, 'length'), context);
 
-                const arr = new Array(length);
-                for (let i = 0; i < length; i++) {
-                    arr[i] = this.toString(getObjectField(thisArg, i.toString()), context);
-                }
+            const separator = values.length === 0 ? ',' : this.toString(values[0], context);
 
-                return stringValue(arr.join(separator));
-            })
-        });
+            const arr = new Array(length);
+            for (let i = 0; i < length; i++) {
+                arr[i] = this.toString(getObjectField(thisArg, i.toString()), context);
+            }
 
-        (this.globals.TypeError.prototype as ObjectValue).ownProperties.set('toString', {
-            value: this.objectMethod((thisArg) => ((thisArg).ownProperties.get('message') as ObjectPropertyDescriptor).value)
-        });
+            return stringValue(arr.join(separator));
+        }));
+
+        this.defineProperty(this.globals.TypeError.prototype as ObjectValue, 'toString', this.objectMethod(thisArg => getObjectField(thisArg, 'message')));
         
         Object.keys(this.globals)
             .forEach((name) => {
                 this.globalScope.variables.set(name, (this.globals as any)[name]);
             });
+    }
+
+    defineProperty(object: ObjectValue, property: string, value: Value): void {
+        object.ownProperties.set(property, {
+            value
+        });
+    }
+
+    newTypeError(message: string, context: Context): RuntimeError {
+        return new RuntimeError(this.constructObject(this.globals.TypeError, [
+            stringValue(message)
+        ], context), context);
     }
 
     runGlobalCode(script: ParsedScript): void {
@@ -168,9 +145,7 @@ export class Engine {
     }
 
     errorConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        (thisArg).ownProperties.set('message', {
-            value: args.length === 0 ? undefinedValue: args[0]
-        });
+        this.defineProperty(thisArg, 'message', args.length === 0 ? undefinedValue: args[0]);
         return undefinedValue;
     }
 
@@ -229,9 +204,8 @@ export class Engine {
 
         const result = objectValue(this.functionPrototype, properties, internalFields);
 
-        prototype.ownProperties.set('constructor', {
-            value: result
-        });
+        this.defineProperty(prototype, 'constructor', result);
+
         return result;
     }
     

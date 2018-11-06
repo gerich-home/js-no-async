@@ -1,10 +1,10 @@
-import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForInStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, WhileStatement } from '@babel/types';
+import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForInStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, ObjectProperty, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, WhileStatement } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
-import { BooleanValue, Context, FunctionContext, FunctionNode, NumberValue, ObjectProperties, ObjectValue, StringValue, Value, Variables } from './types';
+import { BooleanValue, Context, FunctionContext, FunctionNode, NumberValue, ObjectValue, StringValue, Value, Variables } from './types';
 
 type CallStackEntry = {
     caller: Context;
@@ -504,32 +504,42 @@ export class Scope {
     }
 
     evaluateObjectExpression(expression: ObjectExpression): ObjectValue {
-        const fields: ObjectProperties = new Map();
+        const result = objectValue(this.engine.rootPrototype);
 
         for (const property of expression.properties) {
             switch (property.type) {
                 case 'ObjectProperty':
-                    const key: Identifier = property.key;
-                    fields.set(key.name, {
-                        value: this.evaluateExpression(property.value)
-                    });
+                    const propertyName = this.evaluatePropertyName(property);
+                    this.engine.defineProperty(result, propertyName, this.evaluateExpression(property.value));
                     break;
                 case 'ObjectMethod':
-                    const methodKey: Identifier = property.key;
                     if (property.kind !== 'method') {
                         throw new NotImplementedError('getters/setters are unsupported ' + property.kind, this.createContext(expression));
                     }
 
-                    fields.set(methodKey.name, {
-                        value: this.functionValue(property, methodKey.name)
-                    });
+                    const methodName = this.evaluatePropertyName(property);
+                    this.engine.defineProperty(result, methodName, this.functionValue(property, methodName));
                     break;
                 default:
                     throw new NotImplementedError('unsupported property type ' + property.type, this.createContext(expression));
             }
         }
 
-        return objectValue(this.engine.rootPrototype, fields);
+        return objectValue(this.engine.rootPrototype);
+    }
+
+    evaluatePropertyName(property: ObjectProperty | ObjectMethod): string {
+        const key: Expression = property.key;
+
+        if (!property.computed) {
+            if (key.type !== 'Identifier') {
+                throw new NotImplementedError('getters/setters are unsupported ' + key.type, this.createContext(key));
+            }
+
+            return key.name;
+        }
+        
+        return this.engine.toString(this.evaluateExpression(key), this.createContext(property));
     }
 
     evaluateArrayExpression(expression: ArrayExpression): Value {
