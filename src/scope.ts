@@ -1,4 +1,4 @@
-import { BreakStatement, UpdateExpression, ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, VariableDeclaration, ForInStatement } from '@babel/types';
+import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForInStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -521,12 +521,14 @@ export class Scope {
     evaluateMemberExpression(expression: MemberExpression): Value {
         const object = this.evaluateExpression(expression.object);
         const key: Identifier = expression.property;
-
+        
         if (object.type !== 'object') {
             throw new NotImplementedError('member access is unsupported for ' + object.type, this.createContext(expression));
         }
 
-        return getObjectField(object, key.name);
+        const propertyName = expression.computed ? this.engine.toString(this.evaluateExpression(key), this.createContext(expression)) : key.name;
+        
+        return getObjectField(object, propertyName);
     }
 
     evaluateAssignmentExpression(expression: AssignmentExpression): Value {
