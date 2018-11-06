@@ -529,8 +529,14 @@ export class Scope {
     }
 
     evaluatePropertyName(property: ObjectProperty | ObjectMethod): string {
-        const key: Expression = property.key;
+        const key: any = property.key;
 
+        if (key.type !== 'Identifier') {
+            throw new NotImplementedError('key type is unsupported ' + key.type, this.createContext(key));
+        }
+
+        return key.name;
+            
         if (!property.computed) {
             if (key.type !== 'Identifier') {
                 throw new NotImplementedError('getters/setters are unsupported ' + key.type, this.createContext(key));
