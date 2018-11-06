@@ -1,4 +1,4 @@
-import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForInStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration } from '@babel/types';
+import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForInStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, WhileStatement } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
@@ -101,6 +101,8 @@ export class Scope {
                 return this.evaluateForStatement(statement);
             case 'ForInStatement':
                 return this.evaluateForInStatement(statement);
+            case 'WhileStatement':
+                return this.evaluateWhileStatement(statement);
             case 'ReturnStatement':
                 return this.evaluateReturnStatement(statement);
             case 'ThrowStatement':
@@ -296,6 +298,20 @@ export class Scope {
 
         for (let p of iterated.ownProperties.entries()) {
             this.assignValue(stringValue(p[0]), statement.left.declarations[0].id);
+            const result = childScope.evaluateStatement(statement.body);
+
+            if (result !== null) {
+                return (result === 'break') ? null : result;
+            }
+        }
+
+        return null;
+    }
+
+    evaluateWhileStatement(statement: WhileStatement): Value | 'break' | null {
+        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, new Map());
+
+        while (this.engine.toBoolean(childScope.evaluateExpression(statement.test))) {
             const result = childScope.evaluateStatement(statement.body);
 
             if (result !== null) {
