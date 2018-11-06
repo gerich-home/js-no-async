@@ -544,15 +544,9 @@ export class Scope {
 
     evaluateArrayExpression(expression: ArrayExpression): Value {
         const array = objectValue(this.engine.globals.Array.prototype);
-        array.ownProperties.set('length', {
-            value: numberValue(expression.elements.length)
-        });
+        this.engine.defineProperty(array, 'length', numberValue(expression.elements.length));
 
-        expression.elements.forEach((value, index) => {
-            array.ownProperties.set(index.toString(), {
-                value: value === null ? undefinedValue : this.evaluateExpression(value)
-            });
-        });
+        expression.elements.forEach((value, index) => this.engine.defineProperty(array, index.toString(), value === null ? undefinedValue : this.evaluateExpression(value)));
 
         return array;
     }
@@ -625,9 +619,7 @@ export class Scope {
             throw new NotImplementedError('member assignment is unsupported for ' + object.type, this.createContext(to));
         }
 
-        object.ownProperties.set(key.name, {
-            value
-        });
+        this.engine.defineProperty(object, key.name, value);
     }
 
     assignValue(value: Value, to: LVal): void {
@@ -648,9 +640,7 @@ export class Scope {
             let index = 0;
 
             const args = scope.engine.newObject(caller);
-            args.ownProperties.set('length', {
-                value: numberValue(argValues.length)
-            });
+            this.engine.defineProperty(args, 'length', numberValue(argValues.length));
 
             const variables: Variables = new Map([
                 ['arguments', args]
