@@ -375,9 +375,30 @@ export class Scope {
                 return booleanValue(!this.engine.toBoolean(argument));
             case 'typeof':
                 return stringValue(this.typeofValue(argument));
+            case 'delete':
+                return this.evaluateDeleteUnaryExpression(expression);
         }
 
         throw new NotImplementedError('unsupported operator ' + expression.operator, this.createContext(expression));
+    }
+
+    evaluateDeleteUnaryExpression(expression: UnaryExpression): Value {
+        if(expression.argument.type !== 'MemberExpression') {
+            throw new NotImplementedError('arhument of delete should be MemberExpression ' + expression.operator, this.createContext(expression));
+        }
+
+        const member = expression.argument;
+
+        const object = this.evaluateExpression(member.object);
+        const key: Identifier = member.property;
+        
+        if (object.type !== 'object') {
+            throw new NotImplementedError('member access is unsupported for ' + object.type, this.createContext(expression));
+        }
+
+        const propertyName = member.computed ? this.engine.toString(this.evaluateExpression(key), this.createContext(expression)) : key.name;
+        
+        return booleanValue(object.ownProperties.delete(propertyName));
     }
 
     typeofValue(value: Value): Value['type'] | 'function' {
