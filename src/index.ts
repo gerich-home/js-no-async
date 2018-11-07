@@ -50,7 +50,6 @@ async function run() {
     };
 
     for (const file of files) {
-        console.log(`Running test: ${file}`);
         const code = await readFileAsync(file);
 
         const config = extractYaml(code);
@@ -67,20 +66,20 @@ async function run() {
             engine.runGlobalCode(parseScript(code, file));
         
             if (config.negative) {
+                console.log(`- FAILED: ${file}`);
                 console.log('Unexpected positive result');
-                console.log(`- FAILED`);
                 counts.failed++;
             } else {
-                console.log(`+ PASS`);
+                console.log(`+ PASS:   ${file}`);
                 counts.passed++;
             }
         } catch(e) {
             if (config.negative) {
-                console.log(`+ PASS`);
+                console.log(`+ PASS:   ${file}`);
                 counts.passed++;
             } else {
+                console.log(`- FAILED: ${file}`);
                 console.log('Engine error', e.message);
-                console.log(`- FAILED`);
                 counts.failed++;
             }
         }
