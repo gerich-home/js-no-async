@@ -525,17 +525,11 @@ export class Scope {
             }
         }
 
-        return objectValue(this.engine.rootPrototype);
+        return result;
     }
 
     evaluatePropertyName(property: ObjectProperty | ObjectMethod): string {
-        const key: any = property.key;
-
-        if (key.type !== 'Identifier') {
-            throw new NotImplementedError('key type is unsupported ' + key.type, this.createContext(key));
-        }
-
-        return key.name;
+        const key = property.key;
             
         if (!property.computed) {
             if (key.type !== 'Identifier') {
