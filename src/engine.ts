@@ -16,6 +16,8 @@ export class Engine {
         Function: this.functionValue(this.functionConstructor.bind(this), 'Function', this.functionPrototype),
         Array: this.functionValue(this.arrayConstructor.bind(this), 'Array'),
         String: this.functionValue(this.stringConstructor.bind(this), 'String'),
+        Date: this.functionValue(this.dateConstructor.bind(this), 'Date'),
+        Promise: this.functionValue(this.promiseConstructor.bind(this), 'Promise'),
         Error: this.functionValue(this.errorConstructor.bind(this), 'Error'),
         TypeError: this.functionValue(this.errorConstructor.bind(this), 'TypeError'),
         EvalError: this.functionValue(this.errorConstructor.bind(this), 'EvalError'),
@@ -142,6 +144,14 @@ export class Engine {
 
     stringConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
         return stringValue(args.length === 0 ? '' : this.toString(args[0], context));
+    }
+
+    dateConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
+    }
+
+    promiseConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
     }
 
     errorConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
