@@ -37,6 +37,9 @@ export type ObjectPrototypeValue = ObjectValue | NullValue;
 
 export type ObjectPropertyDescriptor = {
     value: Value;
+    writable: boolean;
+    configurable: boolean;
+    enumerable: true;
 };
 
 export type ObjectProperties = Map<string, ObjectPropertyDescriptor>;
