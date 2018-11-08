@@ -17,6 +17,10 @@ export function getObjectField(value: ObjectValue, propertyName: string): Value 
 }
 
 export function formatStack(context: Context): string {
+    if (context === null) {
+        return '';
+    }
+
     if (context.scope.callStackEntry === null) {
         return formatStackLine(context);
     }

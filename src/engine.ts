@@ -10,9 +10,10 @@ import { Context, FunctionInternalFields, GeneralFunctionInvoke, ObjectMethodInv
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
     readonly functionPrototype = this.objectConstructor();
+    readonly object = this.functionValue(this.objectConstructor.bind(this), 'Object', this.rootPrototype);
 
     readonly globals = {
-        Object: this.functionValue(this.objectConstructor.bind(this), 'Object', this.rootPrototype),
+        Object: this.object,
         Function: this.functionValue(this.functionConstructor.bind(this), 'Function', this.functionPrototype),
         Array: this.functionValue(this.arrayConstructor.bind(this), 'Array'),
         String: this.functionValue(this.stringConstructor.bind(this), 'String'),
@@ -28,13 +29,14 @@ export class Engine {
         Number: this.functionValue(this.numberConstructor.bind(this), 'Number'),
         Boolean: this.functionValue(this.booleanConstructor.bind(this), 'Boolean'),
         Symbol: this.functionValue(this.symbolConstructor.bind(this), 'Symbol'),
+        Reflect: this.newSystemObject(),
         log: this.functionValue((thisArg, values, context) => {
             console.log(...values.map(value => this.toString(value, context)));
             return undefinedValue;
         })
     };
 
-    readonly globalVars = this.newObject(null as any);
+    readonly globalVars = this.newSystemObject();
     readonly globalScope = new Scope(this, null, null, null, this.globalVars, this.globalVars);
 
     constructor() {
@@ -85,7 +87,7 @@ export class Engine {
             return object;
         }));
 
-        const arrayPrototype = this.globals.Array.prototype as ObjectValue;
+        const arrayPrototype = getObjectField(this.globals.Array, 'prototype') as ObjectValue;
 
         this.defineProperty(arrayPrototype, 'push', this.objectMethod((thisArg, values, context) => {
             const length = this.toNumber(getObjectField(thisArg, 'length'), context);
@@ -139,7 +141,11 @@ export class Engine {
         return objectValue(this.rootPrototype);
     }
 
-    arrayConstructor(): UndefinedValue {
+    arrayConstructor(thisArg: ObjectValue, args: Value[]): UndefinedValue {
+        this.defineProperty(thisArg, 'length', numberValue(args.length));
+
+        args.forEach((value, index) => this.defineProperty(thisArg, index.toString(), value));
+
         return undefinedValue;
     }
 
@@ -287,8 +293,12 @@ export class Engine {
         return this.executeFunction(getObjectField(value, methodName), value, args, context);
     }
 
+    newSystemObject(): ObjectValue {
+        return this.newObject(null as any);
+    }
+
     newObject(context: Context): ObjectValue {
-        return this.constructObject(this.globals.Object, [], context);
+        return this.constructObject(this.object, [], context);
     }
 
     constructObject(constructor: Value, args: Value[], context: Context): ObjectValue {

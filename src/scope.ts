@@ -1,6 +1,6 @@
 import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForInStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, ObjectProperty, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, WhileStatement } from '@babel/types';
 import { Engine } from './engine';
-import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
+import { booleanValue, nullValue, numberValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
@@ -508,7 +508,7 @@ export class Scope {
     }
 
     evaluateObjectExpression(expression: ObjectExpression): ObjectValue {
-        const result = objectValue(this.engine.rootPrototype);
+        const result = this.engine.newObject(this.createContext(expression));
 
         for (const property of expression.properties) {
             switch (property.type) {
@@ -547,12 +547,9 @@ export class Scope {
     }
 
     evaluateArrayExpression(expression: ArrayExpression): Value {
-        const array = objectValue(this.engine.globals.Array.prototype);
-        this.engine.defineProperty(array, 'length', numberValue(expression.elements.length));
-
-        expression.elements.forEach((value, index) => this.engine.defineProperty(array, index.toString(), value === null ? undefinedValue : this.evaluateExpression(value)));
-
-        return array;
+        const elements = expression.elements.map(value => value === null ? undefinedValue : this.evaluateExpression(value));
+        
+        return this.engine.constructObject(this.engine.globals.Array, elements, this.createContext(expression));
     }
 
     evaluateFunctionExpression(expression: FunctionExpression): Value {
