@@ -44,6 +44,11 @@ export class Engine {
         this.defineProperty(this.rootPrototype, 'valueOf', this.functionValue(thisArg => thisArg));
         this.defineProperty(this.rootPrototype, 'constructor', this.globals.Object);
         this.defineProperty(this.rootPrototype, 'hasOwnProperty', this.objectMethod((thisArg, args, context) => booleanValue(thisArg.ownProperties.has(this.toString(args[0], context)))));
+        
+        this.defineProperty(this.rootPrototype, 'propertyIsEnumerable', this.functionValue((thisArg, args, context) => {
+            return booleanValue(true);
+        }));
+
         this.defineProperty(this.functionPrototype, 'call', this.objectMethod((thisArg, args, context) => this.executeFunction(thisArg, args[0] as ObjectValue, args.slice(1), context)));
 
         this.defineProperty(this.globals.Object, 'getOwnPropertyDescriptor', this.functionValue((thisArg, args, context) => {
@@ -64,6 +69,9 @@ export class Engine {
             const resultDescriptor = this.newObject(context);
 
             this.defineProperty(resultDescriptor, 'value', value);
+            this.defineProperty(resultDescriptor, 'writable', booleanValue(true));
+            this.defineProperty(resultDescriptor, 'enumerable', booleanValue(true));
+            this.defineProperty(resultDescriptor, 'configurable', booleanValue(true));
 
             return resultDescriptor;
         }));
