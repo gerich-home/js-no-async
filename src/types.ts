@@ -45,8 +45,6 @@ export type InternalObjectFields = {
     [variableName: string]: any;
 };
 
-export type Variables =  Map<string, Value>;
-
 export type GeneralFunctionInvoke = (thisArg: Value, argValues: Value[], context: Context) => Value;
 export type ObjectMethodInvoke = (thisArg: ObjectValue, argValues: Value[], context: Context) => Value;
 

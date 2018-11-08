@@ -34,7 +34,8 @@ export class Engine {
         })
     };
 
-    readonly globalScope = new Scope(this, null, null, null, undefinedValue, new Map());
+    readonly globalVars = this.newObject(null as any);
+    readonly globalScope = new Scope(this, null, null, null, this.globalVars, this.globalVars);
 
     constructor() {
         this.defineProperty(this.rootPrototype, 'toString', this.functionValue(() => stringValue('[object Object]')));
@@ -114,7 +115,7 @@ export class Engine {
         
         Object.keys(this.globals)
             .forEach((name) => {
-                this.globalScope.variables.set(name, (this.globals as any)[name]);
+                this.defineProperty(this.globalScope.variables, name, (this.globals as any)[name]);
             });
     }
 

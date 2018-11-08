@@ -4,7 +4,7 @@ import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, string
 import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
-import { BooleanValue, Context, FunctionContext, FunctionNode, NumberValue, ObjectValue, StringValue, Value, Variables } from './types';
+import { BooleanValue, Context, FunctionContext, FunctionNode, NumberValue, ObjectValue, StringValue, Value } from './types';
 
 type CallStackEntry = {
     caller: Context;
@@ -27,11 +27,11 @@ export class Scope {
         readonly parent: Scope | null,
         readonly script: ParsedScript | null,
         readonly thisValue: Value,
-        readonly variables: Variables
+        readonly variables: ObjectValue
     ) { }
 
-    createChildScope(script: ParsedScript | null, callStackEntry: CallStackEntry | null, thisValue: Value, parameters: Variables): Scope {
-        return new Scope(this.engine, callStackEntry, this, script, thisValue, parameters);
+    createChildScope(script: ParsedScript | null, callStackEntry: CallStackEntry | null, thisValue: Value, variables: ObjectValue): Scope {
+        return new Scope(this.engine, callStackEntry, this, script, thisValue, variables);
     }
 
     evaluateScript(script: ParsedScript): void {
@@ -94,7 +94,7 @@ export class Scope {
             case 'ExpressionStatement':
                 return this.evaluateExpressionStatement(statement);
             case 'BlockStatement':
-                return this.evaluateBlockStatement(statement, this.thisValue, new Map());
+                return this.evaluateBlockStatement(statement, this.thisValue, this.engine.newObject(this.createContext(statement)));
             case 'IfStatement':
                 return this.evaluateIfStatement(statement);
             case 'ForStatement':
@@ -164,7 +164,7 @@ export class Scope {
             switch (declaration.id.type) {
                 case 'Identifier':
                     if (declaration.init !== null) {
-                        this.variables.set(declaration.id.name, this.evaluateExpression(declaration.init));
+                        this.engine.defineProperty(this.variables, declaration.id.name, this.evaluateExpression(declaration.init));
                     }
 
                     break;
@@ -180,7 +180,7 @@ export class Scope {
         for (const declaration of statement.declarations) {
             switch (declaration.id.type) {
                 case 'Identifier':
-                    this.variables.set(declaration.id.name, undefinedValue);
+                    this.engine.defineProperty(this.variables, declaration.id.name, undefinedValue);
                     break;
                 default:
                     throw new NotImplementedError('unsupported variable declaration type: ' + declaration.id.type, this.createContext(statement));
@@ -194,7 +194,7 @@ export class Scope {
         if (statement.id === null) {
             throw new NotImplementedError('wrong function declaration', this.createContext(statement));
         } else {
-            this.variables.set(statement.id.name, this.functionValue(statement, statement.id.name));
+            this.engine.defineProperty(this.variables, statement.id.name, this.functionValue(statement, statement.id.name));
         }
 
         return null;
@@ -222,25 +222,29 @@ export class Scope {
         let trueError = false;
 
         try {
-            return this.evaluateBlockStatement(statement.block, this.thisValue, new Map());
+            return this.evaluateBlockStatement(statement.block, this.thisValue, this.engine.newObject(this.createContext(statement.block)));
         } catch (err) {
             if (err instanceof RuntimeError && statement.handler !== null) {
-                return this.evaluateBlockStatement(statement.handler.body, this.thisValue, statement.handler.param === null ? new Map() : new Map([
-                    [statement.handler.param.name, err.thrownValue]
-                ]));
+                const catchVars = this.engine.newObject(this.createContext(statement.handler));
+
+                if(statement.handler.param !== null) {
+                    this.engine.defineProperty(catchVars, statement.handler.param.name, err.thrownValue);
+                }
+
+                return this.evaluateBlockStatement(statement.handler.body, this.thisValue, catchVars);
             } else {
                 trueError = true;
                 throw err;
             }
         } finally {
             if (!trueError && statement.finalizer !== null) {
-                return this.evaluateBlockStatement(statement.finalizer, this.thisValue, new Map());
+                return this.evaluateBlockStatement(statement.finalizer, this.thisValue, this.engine.newObject(this.createContext(statement.finalizer)));
             }
         }
     }
 
-    evaluateBlockStatement(statement: BlockStatement, thisArg: Value, parameters: Variables): Value | 'break' | null {
-        const childScope = this.createChildScope(this.script, this.callStackEntry, thisArg, parameters);
+    evaluateBlockStatement(statement: BlockStatement, thisArg: Value, variables: ObjectValue): Value | 'break' | null {
+        const childScope = this.createChildScope(this.script, this.callStackEntry, thisArg, variables);
 
         return childScope.evaluateStatements(statement);
     }
@@ -258,7 +262,7 @@ export class Scope {
     }
 
     evaluateForStatement(statement: ForStatement): Value | 'break' | null {
-        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, new Map());
+        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, this.engine.newObject(this.createContext(statement)));
 
         if (statement.init !== null) {
             if (statement.init.type === 'VariableDeclaration') {
@@ -284,7 +288,7 @@ export class Scope {
     }
 
     evaluateForInStatement(statement: ForInStatement): Value | 'break' | null {
-        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, new Map());
+        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, this.engine.newObject(this.createContext(statement)));
 
         if (statement.left.type !== 'VariableDeclaration') {
             throw new NotImplementedError('unsupported type of variable declaration in for of: ' + statement.left.type, this.createContext(statement));
@@ -309,7 +313,7 @@ export class Scope {
     }
 
     evaluateWhileStatement(statement: WhileStatement): Value | 'break' | null {
-        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, new Map());
+        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, this.engine.newObject(this.createContext(statement)));
 
         while (this.engine.toBoolean(childScope.evaluateExpression(statement.test))) {
             const result = childScope.evaluateStatement(statement.body);
@@ -586,10 +590,10 @@ export class Scope {
     }
 
     evaluateIdentifier(expression: Identifier): Value {
-        const variable = this.variables.get(expression.name);
+        const variable = this.variables.ownProperties.get(expression.name);
 
         if (variable !== undefined) {
-            return variable;
+            return variable.value;
         }
 
         if (this.parent !== null) {
@@ -600,8 +604,8 @@ export class Scope {
     }
 
     assignIdentifier(value: Value, to: Identifier): void {
-        if (this.variables.has(to.name)) {
-            this.variables.set(to.name, value);
+        if (this.variables.ownProperties.has(to.name)) {
+            this.engine.defineProperty(this.variables, to.name, value);
         } else {
             if (this.parent === null) {
                 throw new NotImplementedError('cannot assign variable as it is not defined ' + to.name, this.createContext(to));
@@ -637,14 +641,18 @@ export class Scope {
         const scope = this;
 
         return this.engine.functionValue((thisArg, argValues, caller) => {
+            if (statement.type === 'ArrowFunctionExpression' && statement.body.type !== 'BlockStatement') {
+                return scope.evaluateExpression(statement.body);
+            }
+
             let index = 0;
 
             const args = scope.engine.newObject(caller);
             this.engine.defineProperty(args, 'length', numberValue(argValues.length));
 
-            const variables: Variables = new Map([
-                ['arguments', args]
-            ]);
+            const variables = this.engine.newObject(scope.createContext(statement));
+
+            this.engine.defineProperty(variables, 'arguments', args);
 
             for (const parameter of statement.params) {
                 switch (parameter.type) {
@@ -652,17 +660,13 @@ export class Scope {
                         const argumentValue = index < argValues.length ?
                             argValues[index] :
                             undefinedValue;
-                        variables.set(parameter.name, argumentValue);
+                        this.engine.defineProperty(variables, parameter.name, argumentValue);
                         break;
                     default:
                         throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported', scope.createContext(parameter));
                 }
 
                 index++;
-            }
-
-            if (statement.type === 'ArrowFunctionExpression' && statement.body.type !== 'BlockStatement') {
-                return scope.evaluateExpression(statement.body);
             }
 
             const thisValue = statement.type === 'ArrowFunctionExpression' ? scope.thisValue : thisArg;
