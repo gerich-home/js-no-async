@@ -394,13 +394,12 @@ export class Scope {
         const member = expression.argument;
 
         const object = this.evaluateExpression(member.object);
-        const key: Identifier = member.property;
         
         if (object.type !== 'object') {
             throw new NotImplementedError('member access is unsupported for ' + object.type, this.createContext(expression));
         }
 
-        const propertyName = member.computed ? this.engine.toString(this.evaluateExpression(key), this.createContext(expression)) : key.name;
+        const propertyName = this.evaluatePropertyName(member);
         
         return booleanValue(object.ownProperties.delete(propertyName));
     }
@@ -532,8 +531,8 @@ export class Scope {
         return result;
     }
 
-    evaluatePropertyName(property: ObjectProperty | ObjectMethod): string {
-        const key = property.key;
+    evaluatePropertyName(property: ObjectProperty | ObjectMethod | MemberExpression): string {
+        const key: Expression = property.type === 'MemberExpression' ? property.property : property.key;
             
         if (!property.computed) {
             if (key.type !== 'Identifier') {
@@ -562,13 +561,12 @@ export class Scope {
 
     evaluateMemberExpression(expression: MemberExpression): Value {
         const object = this.evaluateExpression(expression.object);
-        const key: Identifier = expression.property;
         
         if (object.type !== 'object') {
             throw new NotImplementedError('member access is unsupported for ' + object.type, this.createContext(expression));
         }
 
-        const propertyName = expression.computed ? this.engine.toString(this.evaluateExpression(key), this.createContext(expression)) : key.name;
+        const propertyName = this.evaluatePropertyName(expression);
         
         return getObjectField(object, propertyName);
     }
@@ -614,13 +612,13 @@ export class Scope {
 
     assignMember(value: Value, to: MemberExpression): void {
         const object = this.evaluateExpression(to.object);
-        const key: Identifier = to.property;
-
+        
         if (object.type !== 'object') {
             throw new NotImplementedError('member assignment is unsupported for ' + object.type, this.createContext(to));
         }
 
-        this.engine.defineProperty(object, key.name, value);
+        const propertyName = this.evaluatePropertyName(to);
+        this.engine.defineProperty(object, propertyName, value);
     }
 
     assignValue(value: Value, to: LVal): void {
