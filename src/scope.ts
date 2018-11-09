@@ -1,7 +1,6 @@
 import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForInStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, ObjectProperty, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, WhileStatement } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, ParsedScript, stringValue, undefinedValue } from './factories';
-import { getObjectField } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
 import { BooleanValue, Context, FunctionContext, FunctionNode, NumberValue, ObjectValue, StringValue, Value } from './types';
@@ -484,9 +483,9 @@ export class Scope {
             return false;
         }
 
-        const prototype = right.ownProperties.get('prototype');
+        const prototype = this.engine.readProperty(right, 'prototype', this.createContext(expression));
 
-        return left.prototype === (prototype && prototype.value);
+        return left.prototype === prototype;
     }
 
     strictEqual(left: Value, right: Value): boolean {
@@ -525,12 +524,26 @@ export class Scope {
                     this.engine.defineProperty(result, propertyName, this.evaluateExpression(property.value));
                     break;
                 case 'ObjectMethod':
-                    if (property.kind !== 'method') {
-                        throw new NotImplementedError('getters/setters are unsupported ' + property.kind, this.createContext(expression));
-                    }
-
                     const methodName = this.evaluatePropertyName(property);
-                    this.engine.defineProperty(result, methodName, this.functionValue(property, methodName));
+                    const method = this.functionValue(property, methodName)
+
+                    switch(property.kind) {
+                        case 'method':
+                            this.engine.defineProperty(result, methodName, method);
+                            break;
+                        case 'get':
+                            this.engine.defineProperty(result, methodName, {
+                                descriptorType: 'accessor',
+                                getter: method
+                            });
+                            break;
+                        case 'set':
+                            this.engine.defineProperty(result, methodName, {
+                                descriptorType: 'accessor',
+                                setter: method
+                            });
+                            break;
+                    }
                     break;
                 default:
                     throw new NotImplementedError('unsupported property type ' + property.type, this.createContext(expression));
@@ -577,7 +590,13 @@ export class Scope {
 
         const propertyName = this.evaluatePropertyName(expression);
         
-        return getObjectField(object, propertyName);
+        const result = this.engine.readProperty(object, propertyName, this.createContext(expression));
+        
+        if (result === null) {
+            return undefinedValue;
+        }
+
+        return result;
     }
 
     evaluateAssignmentExpression(expression: AssignmentExpression): Value {
@@ -594,10 +613,10 @@ export class Scope {
     }
 
     evaluateIdentifier(expression: Identifier): Value {
-        const variable = this.variables.ownProperties.get(expression.name);
-
-        if (variable !== undefined) {
-            return variable.value;
+        const variable = this.engine.readProperty(this.variables, expression.name, this.createContext(expression));
+        
+        if (variable !== null) {
+            return variable;
         }
 
         if (this.parent !== null) {
@@ -609,7 +628,7 @@ export class Scope {
 
     assignIdentifier(value: Value, to: Identifier): void {
         if (this.variables.ownProperties.has(to.name)) {
-            this.engine.assignProperty(this.variables, to.name, value);
+            this.engine.assignProperty(this.variables, to.name, value, this.createContext(to));
         } else {
             if (this.parent === null) {
                 throw new NotImplementedError('cannot assign variable as it is not defined ' + to.name, this.createContext(to));
@@ -627,7 +646,7 @@ export class Scope {
         }
 
         const propertyName = this.evaluatePropertyName(to);
-        this.engine.assignProperty(object, propertyName, value);
+        this.engine.assignProperty(object, propertyName, value, this.createContext(to));
     }
 
     assignValue(value: Value, to: LVal): void {

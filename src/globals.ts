@@ -1,20 +1,7 @@
 import { parse } from "@babel/parser";
 import { Identifier, SourceLocation } from "@babel/types";
-import { ParsedScript, undefinedValue } from "./factories";
-import { Context, ObjectValue, Value } from "./types";
-
-export function getObjectField(value: ObjectValue, propertyName: string): Value {
-    const property = value.ownProperties.get(propertyName);
-    if (property !== undefined) {
-        return property.value;
-    }
-
-    if (value.prototype.type === 'null') {
-        return undefinedValue;
-    }
-
-    return getObjectField(value.prototype, propertyName);
-}
+import { ParsedScript } from "./factories";
+import { Context } from "./types";
 
 export function formatStack(context: Context): string {
     if (context === null) {
@@ -30,7 +17,7 @@ export function formatStack(context: Context): string {
     return formatStackLine(context) + formatStack(caller);
 }
 
-function formatStackLine(context: Context): string {
+function formatStackLine(context: NonNullable<Context>): string {
     if (context.node.loc === null) {
         return '';
     }
@@ -38,7 +25,7 @@ function formatStackLine(context: Context): string {
     return `\n    at ${formatNodeLocation(context, context.node.loc)}`;
 }
 
-function formatNodeLocation(context: Context, loc: SourceLocation) {
+function formatNodeLocation(context: NonNullable<Context>, loc: SourceLocation) {
     const location = formatNodeScriptLocation(context, loc);
 
     const functionName = getCalledFunctionName(context);
@@ -46,7 +33,7 @@ function formatNodeLocation(context: Context, loc: SourceLocation) {
     return functionName === null ? location : `${functionName} (${location})`;
 }
 
-function formatNodeScriptLocation(context: Context, loc: SourceLocation) {
+function formatNodeScriptLocation(context: NonNullable<Context>, loc: SourceLocation) {
     const start = loc.start;
     const lineCol = `${start.line}:${start.column}`;
 
@@ -57,7 +44,7 @@ function formatNodeScriptLocation(context: Context, loc: SourceLocation) {
     return `${context.scope.script.path}:${lineCol}`;
 }
 
-function getCalledFunctionName(context: Context): string | null {
+function getCalledFunctionName(context: NonNullable<Context>): string | null {
     const callStackEntry = context.scope.callStackEntry;
 
     if (callStackEntry === null) {

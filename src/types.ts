@@ -35,11 +35,23 @@ export type ObjectValue = {
 
 export type ObjectPrototypeValue = ObjectValue | NullValue;
 
-export type ObjectPropertyDescriptor = {
-    value: Value;
-    writable: boolean;
+export type ObjectPropertyDescriptor = ValueObjectPropertyDescriptor | AccessorObjectPropertyDescriptor;
+
+export type MandatoryObjectPropertyDescriptorFields = {
     configurable: boolean;
     enumerable: boolean;
+};
+
+export type ValueObjectPropertyDescriptor = MandatoryObjectPropertyDescriptorFields & {
+    descriptorType: 'value';
+    value: Value;
+    writable: boolean;
+};
+
+export type AccessorObjectPropertyDescriptor = MandatoryObjectPropertyDescriptorFields & {
+    descriptorType: 'accessor';
+    getter: ObjectValue | UndefinedValue;
+    setter: ObjectValue | UndefinedValue;
 };
 
 export type ObjectProperties = Map<string, ObjectPropertyDescriptor>;
@@ -59,7 +71,7 @@ export type Block = {
     body: Statement[];
 };
 
-export type Context = {
+export type Context = null | {
     node: Node;
     scope: Scope;
 };
