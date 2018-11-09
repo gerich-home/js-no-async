@@ -657,45 +657,19 @@ export class Scope {
     }
 
     functionValue(statement: FunctionNode, name: string | null = null) {
-        const scope = this;
-
         return this.engine.functionValue((thisArg, argValues, caller) => {
             if (statement.type === 'ArrowFunctionExpression' && statement.body.type !== 'BlockStatement') {
-                return scope.evaluateExpression(statement.body);
+                return this.evaluateExpression(statement.body);
             }
 
-            let index = 0;
-
-            const args = scope.engine.newObject();
-            this.engine.defineProperty(args, 'length', numberValue(argValues.length));
-
-            const variables = this.engine.newObject();
-
-            this.engine.defineProperty(variables, 'arguments', args);
-
-            for (const parameter of statement.params) {
-                switch (parameter.type) {
-                    case 'Identifier':
-                        const argumentValue = index < argValues.length ?
-                            argValues[index] :
-                            undefinedValue;
-                        this.engine.defineProperty(variables, parameter.name, argumentValue);
-                        break;
-                    default:
-                        throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported', scope.createContext(parameter));
-                }
-
-                index++;
-            }
-
-            const thisValue = statement.type === 'ArrowFunctionExpression' ? scope.thisValue : thisArg;
-            const childScope = scope.createChildScope(scope.script, {
+            const thisValue = statement.type === 'ArrowFunctionExpression' ? this.thisValue : thisArg;
+            const childScope = this.createChildScope(this.script, {
                 caller,
                 callee: {
                     node: statement,
-                    scope
+                    scope: this
                 }
-            }, thisValue, variables);
+            }, thisValue, this.localVariables(statement, argValues));
 
             const body = statement.body as BlockStatement;
 
@@ -704,11 +678,41 @@ export class Scope {
             const result = childScope.evaluateStatements(body);
             
             if (result === 'break') {
-                throw new NotImplementedError('return should not be break', scope.createContext(statement));
+                throw new NotImplementedError('return should not be break', this.createContext(statement));
             }
             
             return result || undefinedValue;
         }, name);
+    }
+
+    localVariables(statement: FunctionNode, argValues: Value[]): ObjectValue {
+        let index = 0;
+
+        const args = this.engine.newObject();
+        this.engine.defineProperty(args, 'length', numberValue(argValues.length));
+
+        const variables = this.engine.newObject();
+
+        this.engine.defineProperty(variables, 'arguments', args);
+
+        for (const parameter of statement.params) {
+            switch (parameter.type) {
+                case 'Identifier':
+                    const argumentValue = index < argValues.length ?
+                        argValues[index] :
+                        undefinedValue;
+                        
+                    this.engine.defineProperty(args, index.toString(), argumentValue);
+                    this.engine.defineProperty(variables, parameter.name, argumentValue);
+                    break;
+                default:
+                    throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported', this.createContext(parameter));
+            }
+
+            index++;
+        }
+
+        return variables;
     }
 
     createContext(node: Node): Context {
