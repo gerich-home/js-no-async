@@ -362,7 +362,7 @@ export class Scope {
             case 'MemberExpression':
                 return this.evaluateExpression(callee.object);
             default:
-                return undefinedValue;
+                return this.engine.globalVars;
         }
     }
 
