@@ -93,7 +93,7 @@ export class Scope {
             case 'ExpressionStatement':
                 return this.evaluateExpressionStatement(statement);
             case 'BlockStatement':
-                return this.evaluateBlockStatement(statement, this.thisValue, this.engine.newObject(this.createContext(statement)));
+                return this.evaluateBlockStatement(statement, this.thisValue, this.engine.newObject());
             case 'IfStatement':
                 return this.evaluateIfStatement(statement);
             case 'ForStatement':
@@ -221,10 +221,10 @@ export class Scope {
         let trueError = false;
 
         try {
-            return this.evaluateBlockStatement(statement.block, this.thisValue, this.engine.newObject(this.createContext(statement.block)));
+            return this.evaluateBlockStatement(statement.block, this.thisValue, this.engine.newObject());
         } catch (err) {
             if (err instanceof RuntimeError && statement.handler !== null) {
-                const catchVars = this.engine.newObject(this.createContext(statement.handler));
+                const catchVars = this.engine.newObject();
 
                 if(statement.handler.param !== null) {
                     this.engine.defineProperty(catchVars, statement.handler.param.name, err.thrownValue);
@@ -237,7 +237,7 @@ export class Scope {
             }
         } finally {
             if (!trueError && statement.finalizer !== null) {
-                return this.evaluateBlockStatement(statement.finalizer, this.thisValue, this.engine.newObject(this.createContext(statement.finalizer)));
+                return this.evaluateBlockStatement(statement.finalizer, this.thisValue, this.engine.newObject());
             }
         }
     }
@@ -261,7 +261,7 @@ export class Scope {
     }
 
     evaluateForStatement(statement: ForStatement): Value | 'break' | null {
-        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, this.engine.newObject(this.createContext(statement)));
+        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, this.engine.newObject());
 
         if (statement.init !== null) {
             if (statement.init.type === 'VariableDeclaration') {
@@ -287,7 +287,7 @@ export class Scope {
     }
 
     evaluateForInStatement(statement: ForInStatement): Value | 'break' | null {
-        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, this.engine.newObject(this.createContext(statement)));
+        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, this.engine.newObject());
 
         if (statement.left.type !== 'VariableDeclaration') {
             throw new NotImplementedError('unsupported type of variable declaration in for of: ' + statement.left.type, this.createContext(statement));
@@ -316,7 +316,7 @@ export class Scope {
     }
 
     evaluateWhileStatement(statement: WhileStatement): Value | 'break' | null {
-        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, this.engine.newObject(this.createContext(statement)));
+        const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, this.engine.newObject());
 
         while (this.engine.toBoolean(childScope.evaluateExpression(statement.test))) {
             const result = childScope.evaluateStatement(statement.body);
@@ -515,7 +515,7 @@ export class Scope {
     }
 
     evaluateObjectExpression(expression: ObjectExpression): ObjectValue {
-        const result = this.engine.newObject(this.createContext(expression));
+        const result = this.engine.newObject();
 
         for (const property of expression.properties) {
             switch (property.type) {
@@ -666,10 +666,10 @@ export class Scope {
 
             let index = 0;
 
-            const args = scope.engine.newObject(caller);
+            const args = scope.engine.newObject();
             this.engine.defineProperty(args, 'length', numberValue(argValues.length));
 
-            const variables = this.engine.newObject(scope.createContext(statement));
+            const variables = this.engine.newObject();
 
             this.engine.defineProperty(variables, 'arguments', args);
 

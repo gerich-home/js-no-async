@@ -8,7 +8,7 @@ import { AccessorObjectPropertyDescriptor, Context, FunctionInternalFields, Gene
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
-    readonly functionPrototype = this.objectConstructor();
+    readonly functionPrototype = this.newObject();
     readonly object = this.functionValue(this.objectConstructor.bind(this), 'Object', this.rootPrototype);
 
     readonly globals = {
@@ -28,14 +28,14 @@ export class Engine {
         Number: this.functionValue(this.numberConstructor.bind(this), 'Number'),
         Boolean: this.functionValue(this.booleanConstructor.bind(this), 'Boolean'),
         Symbol: this.functionValue(this.symbolConstructor.bind(this), 'Symbol'),
-        Reflect: this.newObject(null),
+        Reflect: this.newObject(),
         log: this.functionValue((thisArg, values, context) => {
             console.log(...values.map(value => this.toString(value, context)));
             return undefinedValue;
         })
     };
 
-    readonly globalVars = this.newObject(null);
+    readonly globalVars = this.newObject();
     readonly globalScope = new Scope(this, null, null, null, this.globalVars, this.globalVars);
 
     constructor() {
@@ -67,7 +67,7 @@ export class Engine {
                 return undefinedValue;
             }
 
-            const resultDescriptor = this.newObject(context);
+            const resultDescriptor = this.newObject();
 
             this.defineProperty(resultDescriptor, 'configurable', booleanValue(descriptor.configurable));
             this.defineProperty(resultDescriptor, 'enumerable', booleanValue(descriptor.enumerable));
@@ -307,8 +307,25 @@ export class Engine {
         this.globalScope.evaluateScript(script);
     }
 
-    objectConstructor(): ObjectValue {
-        return objectValue(this.rootPrototype);
+    objectConstructor(thisArg: Value, args: Value[], context: Context, isNew: boolean): ObjectValue {
+        if (args.length === 0) {
+            return objectValue(this.rootPrototype);
+        }
+
+        const arg = args[0];
+        switch(arg.type) {
+            case 'null':
+            case 'undefined':
+                return objectValue(this.rootPrototype);
+            case 'number':
+                return this.constructObject(this.globals.Number, args, context);
+            case 'boolean':
+                return this.constructObject(this.globals.Boolean, args, context);
+            case 'string':
+                return this.constructObject(this.globals.String, args, context);
+            case 'object':
+                return arg;
+        }
     }
 
     arrayConstructor(thisArg: ObjectValue, args: Value[]): UndefinedValue {
@@ -365,17 +382,17 @@ export class Engine {
         }
     }
 
-    objectMethod(invoke: ObjectMethodInvoke, name: string | null = null, prototype: ObjectValue = this.objectConstructor()): ObjectValue {
-        return this.functionValue((thisArg, argValues, context) => {
+    objectMethod(invoke: ObjectMethodInvoke, name: string | null = null, prototype: ObjectValue = this.newObject()): ObjectValue {
+        return this.functionValue((thisArg, argValues, context, isNew) => {
             if (thisArg.type !== 'object') {
                 throw new NotImplementedError('calling object method with incorrect thisArg ' + thisArg.type, context);
             }
 
-            return invoke(thisArg, argValues, context);
+            return invoke(thisArg, argValues, context, isNew);
         }, name, prototype);
     }
 
-    functionValue(invoke: GeneralFunctionInvoke, name: string | null = null, prototype: ObjectValue = this.objectConstructor()): ObjectValue {
+    functionValue(invoke: GeneralFunctionInvoke, name: string | null = null, prototype: ObjectValue = this.newObject()): ObjectValue {
         const internalFields: FunctionInternalFields = {
             invoke
         };
@@ -441,7 +458,7 @@ export class Engine {
         }
     }
     
-    executeFunction(callee: Value, thisArg: Value, args: Value[], context: Context): Value {
+    executeFunction(callee: Value, thisArg: Value, args: Value[], context: Context, isNew: boolean = false): Value {
         if (callee.type !== 'object') {
             throw new NotImplementedError('call is unsupported for ' + callee.type, context);
         }
@@ -450,7 +467,7 @@ export class Engine {
             throw new NotImplementedError('cannot call non-function', context);
         }
     
-        return (callee.internalFields as FunctionInternalFields).invoke(thisArg, args, context);
+        return (callee.internalFields as FunctionInternalFields).invoke(thisArg, args, context, isNew);
     }
 
     executeMethod(value: ObjectValue, methodName: string, args: Value[], context: Context): Value {
@@ -459,8 +476,8 @@ export class Engine {
         return this.executeFunction(method, value, args, context);
     }
 
-    newObject(context: Context): ObjectValue {
-        return this.constructObject(this.object, [], context);
+    newObject(): ObjectValue {
+        return objectValue(this.rootPrototype);
     }
 
     constructObject(constructor: Value, args: Value[], context: Context): ObjectValue {
@@ -480,7 +497,7 @@ export class Engine {
 
         const thisArg = objectValue(prototype);
         
-        const result = this.executeFunction(constructor, thisArg, args, context);
+        const result = this.executeFunction(constructor, thisArg, args, context, true);
         
         if (result.type !== 'object' && result.type !== 'undefined') {
             throw new NotImplementedError('constructor result should be object or undefined ' + constructor.type, context);
