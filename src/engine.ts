@@ -131,7 +131,10 @@ export class Engine {
 
     defineProperty(object: ObjectValue, property: string, value: Value): void {
         object.ownProperties.set(property, {
-            value
+            value,
+            writable: true,
+            configurable: true,
+            enumerable: true
         });
     }
 
@@ -220,10 +223,16 @@ export class Engine {
 
         const properties: ObjectProperties = new Map([
             ['prototype', {
-                value: prototype
+                value: prototype,
+                writable: true,
+                configurable: true,
+                enumerable: true
             }],
             ['name', {
-                value: name === null ? undefinedValue : stringValue(name)
+                value: name === null ? undefinedValue : stringValue(name),
+                writable: true,
+                configurable: true,
+                enumerable: true
             }]
         ]);
 
