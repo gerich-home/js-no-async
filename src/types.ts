@@ -39,7 +39,7 @@ export type ObjectPropertyDescriptor = {
     value: Value;
     writable: boolean;
     configurable: boolean;
-    enumerable: true;
+    enumerable: boolean;
 };
 
 export type ObjectProperties = Map<string, ObjectPropertyDescriptor>;

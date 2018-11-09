@@ -300,7 +300,11 @@ export class Scope {
             throw new NotImplementedError('unsupported type of iterated object in for of: ' + iterated.type, this.createContext(statement));
         }
 
-        for (let p of iterated.ownProperties.entries()) {
+        for (const p of iterated.ownProperties.entries()) {
+            if (p[1].enumerable === false) {
+                continue;
+            }
+
             this.assignValue(stringValue(p[0]), statement.left.declarations[0].id);
             const result = childScope.evaluateStatement(statement.body);
 
@@ -401,6 +405,11 @@ export class Scope {
 
         const propertyName = this.evaluatePropertyName(member);
         
+        const existingProperty = object.ownProperties.get(propertyName);
+        if (existingProperty !== undefined && existingProperty.configurable === false) {
+            return booleanValue(false);
+        }
+
         return booleanValue(object.ownProperties.delete(propertyName));
     }
 
@@ -600,7 +609,7 @@ export class Scope {
 
     assignIdentifier(value: Value, to: Identifier): void {
         if (this.variables.ownProperties.has(to.name)) {
-            this.engine.defineProperty(this.variables, to.name, value);
+            this.engine.assignProperty(this.variables, to.name, value);
         } else {
             if (this.parent === null) {
                 throw new NotImplementedError('cannot assign variable as it is not defined ' + to.name, this.createContext(to));
@@ -618,7 +627,7 @@ export class Scope {
         }
 
         const propertyName = this.evaluatePropertyName(to);
-        this.engine.defineProperty(object, propertyName, value);
+        this.engine.assignProperty(object, propertyName, value);
     }
 
     assignValue(value: Value, to: LVal): void {

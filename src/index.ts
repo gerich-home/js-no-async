@@ -57,6 +57,7 @@ async function run() {
         const engine = new Engine();
 
         try {
+            // console.log(`RUN:      ${file}`);
             engine.runGlobalCode(allHarnessCode['assert.js']);
             engine.runGlobalCode(allHarnessCode['sta.js']);
             (config.includes || [])
