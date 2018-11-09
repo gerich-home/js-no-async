@@ -28,10 +28,10 @@ export function booleanValue(value: boolean): BooleanValue {
     };
 }
 
-export function objectValue(prototype: ObjectPrototypeValue, ownProperties: ObjectProperties = new Map(), internalFields: InternalObjectFields = {}): ObjectValue {
+export function objectValue(prototype: ObjectPrototypeValue, internalFields: InternalObjectFields = {}): ObjectValue {
     return {
         type: 'object',
-        ownProperties,
+        ownProperties: new Map(),
         internalFields,
         prototype
     };
