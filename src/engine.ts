@@ -126,25 +126,33 @@ export class Engine {
             };
 
             if (isAccessor) {
-                const defaults: Pick<AccessorObjectPropertyDescriptor, Exclude<keyof AccessorObjectPropertyDescriptor, keyof MandatoryObjectPropertyDescriptorFields>> = (existingDescriptor === undefined || existingDescriptor.descriptorType !== 'accessor') ? {
-                    descriptorType: 'accessor',
+                if (getter.type !== 'undefined' && getter.type !== 'object') {
+                    throw this.newTypeError('getter should be a function ' + getter.type, context);
+                }
+
+                if (setter.type !== 'undefined' && setter.type !== 'object') {
+                    throw this.newTypeError('setter should be a function ' + setter.type, context);
+                }
+
+                const defaults = (existingDescriptor === undefined || existingDescriptor.descriptorType !== 'accessor') ? {
                     getter: undefinedValue,
                     setter: undefinedValue
                 } : existingDescriptor;
     
                 this.defineProperty(object, propertyName, {
+                    descriptorType: 'accessor',
                     ...mandatoryFields,
                     getter: getter === undefinedValue ? defaults.getter : getter,
                     setter: setter === undefinedValue ? defaults.setter : setter
                 });  
             } else {
-                const defaults: Pick<ValueObjectPropertyDescriptor, Exclude<keyof ValueObjectPropertyDescriptor, keyof MandatoryObjectPropertyDescriptorFields>> = (existingDescriptor === undefined || existingDescriptor.descriptorType !== 'value') ? {
-                    descriptorType: 'value',
+                const defaults = (existingDescriptor === undefined || existingDescriptor.descriptorType !== 'value') ? {
                     value: undefinedValue,
                     writable: false
                 } : existingDescriptor;
 
                 this.defineProperty(object, propertyName, {
+                    descriptorType: 'value',
                     ...mandatoryFields,
                     value: value === undefinedValue ? defaults.value : value,
                     writable: writable === undefinedValue ? defaults.writable : this.toBoolean(writable)
