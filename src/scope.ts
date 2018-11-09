@@ -592,10 +592,6 @@ export class Scope {
         
         const result = this.engine.readProperty(object, propertyName, this.createContext(expression));
         
-        if (result === null) {
-            return undefinedValue;
-        }
-
         return result;
     }
 
@@ -613,10 +609,10 @@ export class Scope {
     }
 
     evaluateIdentifier(expression: Identifier): Value {
-        const variable = this.engine.readProperty(this.variables, expression.name, this.createContext(expression));
+        const variable = this.engine.getPropertyDescriptor(this.variables, expression.name);
         
         if (variable !== null) {
-            return variable;
+            return this.engine.readPropertyDescriptorValue(this.variables, variable, this.createContext(expression));
         }
 
         if (this.parent !== null) {

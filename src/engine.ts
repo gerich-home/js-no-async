@@ -108,8 +108,8 @@ export class Engine {
             const getter = this.readProperty(descriptor, 'get', context);
             const setter = this.readProperty(descriptor, 'set', context);
 
-            const isAccessor = getter !== null || setter !== null;
-            const isValue = value !== null || writable !== null;
+            const isAccessor = getter !== undefinedValue || setter !== undefinedValue;
+            const isValue = value !== undefinedValue || writable !== undefinedValue;
 
             if (isAccessor && isValue) {
                 throw this.newTypeError('property descriptor should be either a value of an accessor', context);
@@ -121,8 +121,8 @@ export class Engine {
             } : existingDescriptor;
 
             const mandatoryFields: MandatoryObjectPropertyDescriptorFields = {
-                configurable: configurable === null ? mandatoryDefaults.configurable : this.toBoolean(configurable),
-                enumerable: enumerable === null ? mandatoryDefaults.configurable : this.toBoolean(enumerable)
+                configurable: configurable === undefinedValue ? mandatoryDefaults.configurable : this.toBoolean(configurable),
+                enumerable: enumerable === undefinedValue ? mandatoryDefaults.configurable : this.toBoolean(enumerable)
             };
 
             if (isAccessor) {
@@ -134,8 +134,8 @@ export class Engine {
     
                 this.defineProperty(object, propertyName, {
                     ...mandatoryFields,
-                    getter: getter === null ? defaults.getter : getter,
-                    setter: setter === null ? defaults.setter : setter
+                    getter: getter === undefinedValue ? defaults.getter : getter,
+                    setter: setter === undefinedValue ? defaults.setter : setter
                 });  
             } else {
                 const defaults: Pick<ValueObjectPropertyDescriptor, Exclude<keyof ValueObjectPropertyDescriptor, keyof MandatoryObjectPropertyDescriptorFields>> = (existingDescriptor === undefined || existingDescriptor.descriptorType !== 'value') ? {
@@ -146,8 +146,8 @@ export class Engine {
 
                 this.defineProperty(object, propertyName, {
                     ...mandatoryFields,
-                    value: value === null ? defaults.value : value,
-                    writable: writable === null ? defaults.writable : this.toBoolean(writable)
+                    value: value === undefinedValue ? defaults.value : value,
+                    writable: writable === undefinedValue ? defaults.writable : this.toBoolean(writable)
                 });
             }
 
@@ -157,7 +157,7 @@ export class Engine {
         const arrayPrototype = this.readProperty(this.globals.Array, 'prototype', null) as ObjectValue;
 
         this.defineProperty(arrayPrototype, 'push', this.objectMethod((thisArg, values, context) => {
-            const lengthValue = this.readProperty(thisArg, 'length', context) || undefinedValue;
+            const lengthValue = this.readProperty(thisArg, 'length', context);
 
             const length = this.toNumber(lengthValue, context);
             const newLength = numberValue(length + values.length);
@@ -170,19 +170,19 @@ export class Engine {
         }));
 
         this.defineProperty(arrayPrototype, 'join', this.objectMethod((thisArg, values, context) => {
-            const length = this.toNumber(this.readProperty(thisArg, 'length', context) || undefinedValue, context);
+            const length = this.toNumber(this.readProperty(thisArg, 'length', context), context);
 
             const separator = values.length === 0 ? ',' : this.toString(values[0], context);
 
             const arr = new Array(length);
             for (let i = 0; i < length; i++) {
-                arr[i] = this.toString(this.readProperty(thisArg, i.toString(), context) || undefinedValue, context);
+                arr[i] = this.toString(this.readProperty(thisArg, i.toString(), context), context);
             }
 
             return stringValue(arr.join(separator));
         }));
 
-        this.defineProperty(this.globals.TypeError.prototype as ObjectValue, 'toString', this.objectMethod((thisArg, args, context) => this.readProperty(thisArg, 'message', context) || undefinedValue));
+        this.defineProperty(this.globals.TypeError.prototype as ObjectValue, 'toString', this.objectMethod((thisArg, args, context) => this.readProperty(thisArg, 'message', context)));
         
         Object.keys(this.globals)
             .forEach((name) => {
@@ -242,27 +242,41 @@ export class Engine {
         }
     }
 
-    readProperty(object: ObjectValue, propertyName: string, context: Context): Value | null {
+    getPropertyDescriptor(object: ObjectValue, propertyName: string): ObjectPropertyDescriptor | null {
         const property = object.ownProperties.get(propertyName);
         
         if (property !== undefined) {
-            switch (property.descriptorType) {
-                case 'value':
-                    return property.value;
-                case 'accessor':
-                    if (property.getter.type === 'undefined') {
-                        return undefinedValue;
-                    }
-
-                    return this.executeFunction(property.getter, object, [], context);
-            }
+            return property;
         }
 
         if (object.prototype.type === 'null') {
             return null;
         }
 
-        return this.readProperty(object.prototype, propertyName, context);
+        return this.getPropertyDescriptor(object.prototype, propertyName);
+    }
+
+    readProperty(object: ObjectValue, propertyName: string, context: Context): Value {
+        const property = this.getPropertyDescriptor(object, propertyName);
+        
+        if (property === null) {
+            return undefinedValue;
+        }
+
+        return this.readPropertyDescriptorValue(object, property, context);
+    }
+    
+    readPropertyDescriptorValue(object: ObjectValue, property: ObjectPropertyDescriptor, context: Context): Value {
+        switch (property.descriptorType) {
+            case 'value':
+                return property.value;
+            case 'accessor':
+                if (property.getter.type === 'undefined') {
+                    return undefinedValue;
+                }
+
+                return this.executeFunction(property.getter, object, [], context);
+        }
     }
 
     newTypeError(message: string, context: Context): RuntimeError {
@@ -424,10 +438,6 @@ export class Engine {
     executeMethod(value: ObjectValue, methodName: string, args: Value[], context: Context): Value {
         const method = this.readProperty(value, methodName, context);
 
-        if (method === null) {
-            throw new NotImplementedError('Method not found ' + methodName, context);
-        }
-
         return this.executeFunction(method, value, args, context);
     }
 
@@ -445,10 +455,6 @@ export class Engine {
         }
 
         const prototype = this.readProperty(constructor, 'prototype', context);
-        
-        if (prototype === null) {
-            throw new NotImplementedError('prototype is not set', context);
-        }
 
         if (prototype.type !== 'object') {
             throw new NotImplementedError('prototype cannot be ' + prototype.type, context);
