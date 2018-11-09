@@ -221,22 +221,10 @@ export class Engine {
             invoke
         };
 
-        const properties: ObjectProperties = new Map([
-            ['prototype', {
-                value: prototype,
-                writable: true,
-                configurable: true,
-                enumerable: true
-            }],
-            ['name', {
-                value: name === null ? undefinedValue : stringValue(name),
-                writable: true,
-                configurable: true,
-                enumerable: true
-            }]
-        ]);
-
-        const result = objectValue(this.functionPrototype, properties, internalFields);
+        const result = objectValue(this.functionPrototype, internalFields);
+        
+        this.defineProperty(result, 'prototype', prototype);
+        this.defineProperty(result, 'name', name === null ? undefinedValue : stringValue(name));
 
         this.defineProperty(prototype, 'constructor', result);
 
