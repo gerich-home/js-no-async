@@ -15,7 +15,11 @@ export class RuntimeError extends Error {
     }
 }
 
-function tryGetThrownValue(thrownValue: Value, context: Context): string | null {
+function tryGetThrownValue(thrownValue: Value, context: Context): string | null 
+    if (context === null) {
+        return null;
+    }
+    
     try {
         return context.scope.engine.toString(thrownValue, context);
     } catch {
