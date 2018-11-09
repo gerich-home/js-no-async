@@ -584,13 +584,13 @@ export class Scope {
     evaluateMemberExpression(expression: MemberExpression): Value {
         const object = this.evaluateExpression(expression.object);
         
-        if (object.type !== 'object') {
-            throw new NotImplementedError('member access is unsupported for ' + object.type, this.createContext(expression));
-        }
+        const convertedObject = object.type === 'object' ?
+            object :
+            this.engine.constructObject(this.engine.object, [object], this.createContext(expression));
 
         const propertyName = this.evaluatePropertyName(expression);
         
-        const result = this.engine.readProperty(object, propertyName, this.createContext(expression));
+        const result = this.engine.readProperty(convertedObject, propertyName, this.createContext(expression));
         
         return result;
     }

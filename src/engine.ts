@@ -201,6 +201,19 @@ export class Engine {
         }));
 
         this.defineProperty(this.globals.TypeError.prototype as ObjectValue, 'toString', this.objectMethod((thisArg, args, context) => this.readProperty(thisArg, 'message', context)));
+        this.defineProperty(this.globals.String.prototype as ObjectValue, 'length', {
+            descriptorType: 'accessor',
+            getter: this.objectMethod((thisArg, args, context) => {
+                if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
+                    const wrappedValue = thisArg.internalFields['wrappedValue'];
+                    if (wrappedValue instanceof String) {
+                        return numberValue(wrappedValue.length);
+                    }
+                }
+
+                throw this.newTypeError('String.length failed', context);
+            })
+        });
         
         Object.keys(this.globals)
             .forEach((name) => {
@@ -336,8 +349,15 @@ export class Engine {
         return undefinedValue;
     }
 
-    stringConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return stringValue(args.length === 0 ? '' : this.toString(args[0], context));
+    stringConstructor(thisArg: ObjectValue, args: Value[], context: Context, isNew: boolean): Value {
+        const value = stringValue(args.length === 0 ? '' : this.toString(args[0], context));
+
+        if (isNew) {
+            thisArg.internalFields['wrappedValue'] = value;
+            return undefinedValue;
+        } else {
+            return value;
+        }
     }
 
     dateConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
@@ -353,12 +373,26 @@ export class Engine {
         return undefinedValue;
     }
 
-    numberConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return numberValue(args.length === 0 ? 0 : this.toNumber(args[0], context));
+    numberConstructor(thisArg: ObjectValue, args: Value[], context: Context, isNew: boolean): Value {
+        const value = numberValue(args.length === 0 ? 0 : this.toNumber(args[0], context));
+
+        if (isNew) {
+            thisArg.internalFields['wrappedValue'] = value;
+            return undefinedValue;
+        } else {
+            return value;
+        }
     }
 
-    booleanConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return booleanValue(args.length === 0 ? false : this.toBoolean(args[0]));
+    booleanConstructor(thisArg: ObjectValue, args: Value[], context: Context, isNew: boolean): Value {
+        const value = booleanValue(args.length === 0 ? false : this.toBoolean(args[0]));
+
+        if (isNew) {
+            thisArg.internalFields['wrappedValue'] = value;
+            return undefinedValue;
+        } else {
+            return value;
+        }
     }
 
     symbolConstructor(): UndefinedValue {
