@@ -4,7 +4,7 @@ import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, string
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
 import { Scope } from './scope';
-import { Context, FunctionInternalFields, GeneralFunctionInvoke, ObjectMethodInvoke, ObjectProperties, ObjectValue, StringValue, UndefinedValue, Value, ObjectPropertyDescriptor, MandatoryObjectPropertyDescriptorFields, ValueObjectPropertyDescriptor, AccessorObjectPropertyDescriptor } from './types';
+import { AccessorObjectPropertyDescriptor, Context, FunctionInternalFields, GeneralFunctionInvoke, MandatoryObjectPropertyDescriptorFields, ObjectMethodInvoke, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value, ValueObjectPropertyDescriptor } from './types';
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
@@ -54,7 +54,7 @@ export class Engine {
 
         this.defineProperty(this.functionPrototype, 'call', this.objectMethod((thisArg, args, context) => this.executeFunction(thisArg, args[0] as ObjectValue, args.slice(1), context)));
 
-        this.defineProperty(this.globals.Object, 'getOwnPropertyDescriptor', this.functionValue((thisArg, args, context) => {
+        this.defineProperty(this.object, 'getOwnPropertyDescriptor', this.functionValue((thisArg, args, context) => {
             const object = args[0];
             
             if (object.type !== 'object') {
@@ -83,7 +83,7 @@ export class Engine {
             return resultDescriptor;
         }));
 
-        this.defineProperty(this.globals.Object, 'defineProperty', this.functionValue((thisArg, args, context) => {
+        this.defineProperty(this.object, 'defineProperty', this.functionValue((thisArg, args, context) => {
             const object = args[0];
             if (object.type !== 'object') {
                 throw this.newTypeError('defineProperty should be called for object value', context);
@@ -160,6 +160,16 @@ export class Engine {
             }
 
             return object;
+        }));
+
+        this.defineProperty(this.object, 'getPrototypeOf', this.functionValue((thisArg, args, context) => {
+            const object = args[0];
+            
+            if (object.type !== 'object') {
+                throw this.newTypeError('getOwnPropertyDescriptor should be called for object value', context);
+            }
+
+            return object.prototype;
         }));
 
         const arrayPrototype = this.readProperty(this.globals.Array, 'prototype', null) as ObjectValue;
