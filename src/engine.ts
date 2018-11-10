@@ -171,7 +171,12 @@ export class Engine {
 
             return object.prototype;
         }));
-
+        
+        this.defineProperty(this.globals.Reflect, 'construct', this.functionValue((thisArg, args, context) => {
+            const length = this.readProperty(args[1] as ObjectValue, 'length', context);
+            return this.constructObject(args[0] as ObjectValue, [], context);
+        }));
+        
         const arrayPrototype = this.readProperty(this.globals.Array, 'prototype', null) as ObjectValue;
 
         this.defineProperty(arrayPrototype, 'push', this.objectMethod((thisArg, values, context) => {
