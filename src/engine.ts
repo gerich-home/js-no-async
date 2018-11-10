@@ -174,7 +174,7 @@ export class Engine {
         
         this.defineProperty(this.globals.Reflect, 'construct', this.functionValue((thisArg, args, context) => {
             const length = this.readProperty(args[1] as ObjectValue, 'length', context);
-            return this.constructObject(args[0] as ObjectValue, [], context);
+            return this.constructObject(args[0], [], context, args.length < 3 ? args[0] : args[2]);
         }));
         
         const arrayPrototype = this.readProperty(this.globals.Array, 'prototype', null) as ObjectValue;
@@ -325,7 +325,7 @@ export class Engine {
         this.globalScope.evaluateScript(script);
     }
 
-    objectConstructor(thisArg: Value, args: Value[], context: Context, isNew: boolean): ObjectValue {
+    objectConstructor(thisArg: Value, args: Value[], context: Context, newTarget: Value): ObjectValue {
         if (args.length === 0) {
             return objectValue(this.rootPrototype);
         }
@@ -497,7 +497,7 @@ export class Engine {
         }
     }
     
-    executeFunction(callee: Value, thisArg: Value, args: Value[], context: Context, isNew: boolean = false): Value {
+    executeFunction(callee: Value, thisArg: Value, args: Value[], context: Context, newTarget: Value = undefinedValue): Value {
         if (callee.type !== 'object') {
             throw new NotImplementedError('call is unsupported for ' + callee.type, context);
         }
@@ -506,7 +506,7 @@ export class Engine {
             throw new NotImplementedError('cannot call non-function', context);
         }
     
-        return (callee.internalFields as FunctionInternalFields).invoke(thisArg, args, context, isNew);
+        return (callee.internalFields as FunctionInternalFields).invoke(thisArg, args, context, newTarget);
     }
 
     executeMethod(value: ObjectValue, methodName: string, args: Value[], context: Context): Value {
@@ -519,24 +519,28 @@ export class Engine {
         return objectValue(this.rootPrototype);
     }
 
-    constructObject(constructor: Value, args: Value[], context: Context): ObjectValue {
+    constructObject(constructor: Value, args: Value[], context: Context, newTarget: Value = constructor): ObjectValue {
         if (constructor.type !== 'object') {
             throw new NotImplementedError('new is unsupported for ' + constructor.type, context);
         }
     
         if (constructor.prototype !== this.functionPrototype) {
-            throw new NotImplementedError('cannot use new for non-function', context);
+            throw this.newTypeError('cannot use new for non-function', context);
         }
 
-        const prototype = this.readProperty(constructor, 'prototype', context);
+        if (newTarget.type !== 'object') {
+            throw this.newTypeError('new is unsupported for target ' + newTarget.type, context);
+        }
+        
+        const prototype = this.readProperty(newTarget, 'prototype', context);
 
         if (prototype.type !== 'object') {
-            throw new NotImplementedError('prototype cannot be ' + prototype.type, context);
+            throw this.newTypeError('prototype cannot be ' + prototype.type, context);
         }
 
         const thisArg = objectValue(prototype);
         
-        const result = this.executeFunction(constructor, thisArg, args, context, true);
+        const result = this.executeFunction(constructor, thisArg, args, context, thisArg);
         
         if (result.type !== 'object' && result.type !== 'undefined') {
             throw new NotImplementedError('constructor result should be object or undefined ' + constructor.type, context);

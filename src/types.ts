@@ -60,8 +60,8 @@ export type InternalObjectFields = {
     [variableName: string]: any;
 };
 
-export type GeneralFunctionInvoke = (thisArg: Value, argValues: Value[], context: Context, isNew: boolean) => Value;
-export type ObjectMethodInvoke = (thisArg: ObjectValue, argValues: Value[], context: Context, isNew: boolean) => Value;
+export type GeneralFunctionInvoke = (thisArg: Value, argValues: Value[], context: Context, newTarget: Value) => Value;
+export type ObjectMethodInvoke = (thisArg: ObjectValue, argValues: Value[], context: Context, newTarget: Value) => Value;
 
 export type FunctionInternalFields = {
     invoke: GeneralFunctionInvoke;
