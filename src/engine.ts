@@ -173,8 +173,9 @@ export class Engine {
         }));
         
         this.defineProperty(this.globals.Reflect, 'construct', this.functionValue((thisArg, args, context) => {
-            const length = this.readProperty(args[1] as ObjectValue, 'length', context);
-            return this.constructObject(args[0], [], context, args.length < 3 ? args[0] : args[2]);
+            const constructorArgs = this.toArray(args[1] as ObjectValue, context);
+            
+            return this.constructObject(args[0], constructorArgs, context, args.length < 3 ? args[0] : args[2]);
         }));
         
         const arrayPrototype = this.readProperty(this.globals.Array, 'prototype', null) as ObjectValue;
@@ -255,6 +256,19 @@ export class Engine {
                 ...(descriptor as Partial<MandatoryObjectPropertyDescriptorFields & AccessorObjectPropertyDescriptor>)
             });
         }
+    }
+
+    toArray(arrayValue: ObjectValue, context: Context): Value[] {
+        const lengthProperty = this.readProperty(arrayValue, 'length', context);
+        const length = this.toNumber(lengthProperty, context);
+
+        const result: Value[] = [];
+
+        for(let i = 0; i < length; i++) {
+            result.push(this.readProperty(arrayValue, i.toString(), context));
+        }
+
+        return result;
     }
 
     assignProperty(object: ObjectValue, propertyName: string, value: Value, context: Context): void {
@@ -354,14 +368,14 @@ export class Engine {
         return undefinedValue;
     }
 
-    stringConstructor(thisArg: ObjectValue, args: Value[], context: Context, isNew: boolean): Value {
+    stringConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
         const value = stringValue(args.length === 0 ? '' : this.toString(args[0], context));
 
-        if (isNew) {
+        if (newTarget === undefinedValue) {
+            return value;
+        } else {
             thisArg.internalFields['wrappedValue'] = value;
             return undefinedValue;
-        } else {
-            return value;
         }
     }
 
@@ -378,25 +392,25 @@ export class Engine {
         return undefinedValue;
     }
 
-    numberConstructor(thisArg: ObjectValue, args: Value[], context: Context, isNew: boolean): Value {
+    numberConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
         const value = numberValue(args.length === 0 ? 0 : this.toNumber(args[0], context));
 
-        if (isNew) {
+        if (newTarget === undefinedValue) {
+            return value;
+        } else {
             thisArg.internalFields['wrappedValue'] = value;
             return undefinedValue;
-        } else {
-            return value;
         }
     }
 
-    booleanConstructor(thisArg: ObjectValue, args: Value[], context: Context, isNew: boolean): Value {
+    booleanConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
         const value = booleanValue(args.length === 0 ? false : this.toBoolean(args[0]));
 
-        if (isNew) {
+        if (newTarget) {
+            return value;
+        } else {
             thisArg.internalFields['wrappedValue'] = value;
             return undefinedValue;
-        } else {
-            return value;
         }
     }
 
@@ -422,12 +436,12 @@ export class Engine {
     }
 
     objectMethod(invoke: ObjectMethodInvoke, name: string | null = null, prototype: ObjectValue = this.newObject()): ObjectValue {
-        return this.functionValue((thisArg, argValues, context, isNew) => {
+        return this.functionValue((thisArg, argValues, context, newTarget) => {
             if (thisArg.type !== 'object') {
                 throw new NotImplementedError('calling object method with incorrect thisArg ' + thisArg.type, context);
             }
 
-            return invoke(thisArg, argValues, context, isNew);
+            return invoke(thisArg, argValues, context, newTarget);
         }, name, prototype);
     }
 
@@ -519,7 +533,7 @@ export class Engine {
         return objectValue(this.rootPrototype);
     }
 
-    constructObject(constructor: Value, args: Value[], context: Context, newTarget: Value = constructor): ObjectValue {
+    constructObject(constructor: Value, args: Value[], context: Context, newTargetConstructor: Value = constructor): ObjectValue {
         if (constructor.type !== 'object') {
             throw new NotImplementedError('new is unsupported for ' + constructor.type, context);
         }
@@ -528,11 +542,11 @@ export class Engine {
             throw this.newTypeError('cannot use new for non-function', context);
         }
 
-        if (newTarget.type !== 'object') {
-            throw this.newTypeError('new is unsupported for target ' + newTarget.type, context);
+        if (newTargetConstructor.type !== 'object') {
+            throw this.newTypeError('new is unsupported for target ' + newTargetConstructor.type, context);
         }
         
-        const prototype = this.readProperty(newTarget, 'prototype', context);
+        const prototype = this.readProperty(newTargetConstructor, 'prototype', context);
 
         if (prototype.type !== 'object') {
             throw this.newTypeError('prototype cannot be ' + prototype.type, context);

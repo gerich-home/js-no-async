@@ -657,7 +657,13 @@ export class Scope {
     }
 
     functionValue(statement: FunctionNode, name: string | null = null) {
-        return this.engine.functionValue((thisArg, argValues, caller) => {
+        return this.engine.functionValue((thisArg, argValues, caller, newTarget) => {
+            if (newTarget !== undefinedValue) {
+                if ((statement.type === 'ArrowFunctionExpression') || statement.generator) {
+                    throw this.engine.newTypeError('function is not a constructor', this.createContext(statement));
+                }
+            }
+
             if (statement.type === 'ArrowFunctionExpression' && statement.body.type !== 'BlockStatement') {
                 return this.evaluateExpression(statement.body);
             }
