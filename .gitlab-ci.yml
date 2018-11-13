@@ -41,7 +41,7 @@ test_builtins:
   variables:
     TESTS_GLOB: "test262/test/built-ins/**/*.js"
 
-test_builtins:
+test_intl402:
   stage: test
   script:
    - npm run start
