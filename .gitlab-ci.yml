@@ -12,35 +12,44 @@ stages:
   - test
 
 build:
+  stage: build
   script:
    - npm install
-   - npx tsc
+   - npx ts
+  artifacts:
+    untracked: true
+    when: on_success
 
 test_harness:
+  stage: test
   script:
    - npm run start
   variables:
     TESTS_GLOB: "test262/test/harness/**/*.js"
 
 test_annexB:
+  stage: test
   script:
    - npm run start
   variables:
     TESTS_GLOB: "test262/test/annexB/**/*.js"
 
 test_builtins:
+  stage: test
   script:
    - npm run start
   variables:
     TESTS_GLOB: "test262/test/built-ins/**/*.js"
 
 test_builtins:
+  stage: test
   script:
    - npm run start
   variables:
     TESTS_GLOB: "test262/test/intl402/**/*.js"
 
 test_language:
+  stage: test
   script:
    - npm run start
   variables:
