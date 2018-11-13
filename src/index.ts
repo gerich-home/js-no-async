@@ -43,7 +43,7 @@ async function run() {
             [harnessFile.harnessFileName.replace('test262/harness/', '')]: harnessFile.script
         }), {});
 
-    const files = await globAsync('test262/test/harness/*.js');
+    const files = await globAsync(process.env.TESTS_GLOB as string);
     const counts = {
         passed: 0,
         failed: 0

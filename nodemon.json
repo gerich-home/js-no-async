@@ -1,5 +1,8 @@
 {
   "watch": ["src", "testCode"],
   "ext": "js,ts",
-  "exec": "ts-node ./src/index.ts"
+  "exec": "ts-node ./src/index.ts",
+  "env": {
+    "TESTS_GLOB": "test262/test/harness/**/*.js"
+  }
 }
