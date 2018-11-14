@@ -381,7 +381,7 @@ export class Scope {
             case '!':
                 return booleanValue(!this.engine.toBoolean(argument));
             case 'typeof':
-                return stringValue(this.typeofValue(argument));
+                return stringValue(this.typeofValue(argument, expression));
             case 'delete':
                 return this.evaluateDeleteUnaryExpression(expression);
         }
@@ -412,12 +412,12 @@ export class Scope {
         return booleanValue(object.ownProperties.delete(propertyName));
     }
 
-    typeofValue(value: Value): Value['type'] | 'function' {
+    typeofValue(value: Value, expression: Expression): Value['type'] | 'function' {
         switch (value.type) {
             case 'null':
                 return 'object';
             case 'object':
-                if (value.prototype === this.engine.functionPrototype) {
+                if (this.engine.isInstanceOf(value, this.engine.globals.Function, this.createContext(expression))) {
                     return 'function';
                 }
                 break;
@@ -454,7 +454,7 @@ export class Scope {
             case '<':
                 return booleanValue(this.engine.toNumber(left, this.createContext(expression)) < this.engine.toNumber(right, this.createContext(expression)));
             case 'instanceof':
-                return booleanValue(this.isInstanceOf(left, right, expression));
+                return booleanValue(this.engine.isInstanceOf(left, right, this.createContext(expression)));
         }
 
         throw new NotImplementedError('unsupported operator ' + expression.operator, this.createContext(expression));
@@ -472,20 +472,6 @@ export class Scope {
         }
 
         throw new NotImplementedError('unsupported operator ' + expression.operator, this.createContext(expression));
-    }
-
-    isInstanceOf(left: Value, right: Value, expression: Expression): boolean {
-        if (right.type !== 'object' || right.prototype !== this.engine.functionPrototype) {
-            throw new NotImplementedError(`Right-hand side of 'instanceof' is not an object`, this.createContext(expression));
-        }
-
-        if (left.type !== 'object') {
-            return false;
-        }
-
-        const prototype = this.engine.readProperty(right, 'prototype', this.createContext(expression));
-
-        return left.prototype === prototype;
     }
 
     strictEqual(left: Value, right: Value): boolean {
@@ -570,7 +556,7 @@ export class Scope {
     evaluateArrayExpression(expression: ArrayExpression): Value {
         const elements = expression.elements.map(value => value === null ? undefinedValue : this.evaluateExpression(value));
         
-        return this.engine.constructObject(this.engine.globals.Array, elements, this.createContext(expression));
+        return this.engine.constructArray(elements, this.createContext(expression));
     }
 
     evaluateFunctionExpression(expression: FunctionExpression): Value {

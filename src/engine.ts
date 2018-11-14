@@ -31,6 +31,17 @@ export class Engine {
         ReferenceError: this.functionValue(this.errorConstructor.bind(this), { name: 'ReferenceError' }),
         SyntaxError: this.functionValue(this.errorConstructor.bind(this), { name: 'SyntaxError' }),
         URIError: this.functionValue(this.errorConstructor.bind(this), { name: 'URIError' }),
+        ArrayBuffer: this.functionValue(this.arrayBufferConstructor.bind(this), { name: 'ArrayBuffer' }),
+        TypedArray: this.functionValue(this.typedArrayConstructor.bind(this), { name: 'TypedArray' }),
+        Float64Array: this.functionValue(this.float64ArrayConstructor.bind(this), { name: 'Float64Array' }),
+        Float32Array: this.functionValue(this.float32ArrayConstructor.bind(this), { name: 'Float32Array' }),
+        Int32Array: this.functionValue(this.int32ArrayConstructor.bind(this), { name: 'Int32Array' }),
+        Int16Array: this.functionValue(this.int16ArrayConstructor.bind(this), { name: 'Int16Array' }),
+        Int8Array: this.functionValue(this.int8ArrayConstructor.bind(this), { name: 'Int8Array' }),
+        Uint32Array: this.functionValue(this.uint32ArrayConstructor.bind(this), { name: 'Uint32Array' }),
+        Uint16Array: this.functionValue(this.uint16ArrayConstructor.bind(this), { name: 'Uint16Array' }),
+        Uint8Array: this.functionValue(this.uint8ArrayConstructor.bind(this), { name: 'Uint8Array' }),
+        Uint8ClampedArray: this.functionValue(this.uint8ClampedArrayConstructor.bind(this), { name: 'Uint8ClampedArray' }),
         Number: this.functionValue(this.numberConstructor.bind(this), { name: 'Number' }),
         Boolean: this.functionValue(this.booleanConstructor.bind(this), { name: 'Boolean' }),
         Symbol: this.functionValue(this.symbolConstructor.bind(this), { name: 'Symbol' }),
@@ -184,6 +195,10 @@ export class Engine {
             return this.constructObject(args[0], constructorArgs, context, args.length < 3 ? args[0] : args[2]);
         }));
         
+        this.defineProperty(this.globals.Date.prototype as ObjectValue, 'getTimezoneOffset', this.objectMethod((thisArg, args, context) => {
+            return undefinedValue;
+        }));
+        
         const arrayPrototype = this.readProperty(this.globals.Array, 'prototype', null) as ObjectValue;
 
         this.defineProperty(arrayPrototype, 'push', this.objectMethod((thisArg, values, context) => {
@@ -200,16 +215,28 @@ export class Engine {
         }));
 
         this.defineProperty(arrayPrototype, 'join', this.objectMethod((thisArg, values, context) => {
-            const length = this.toNumber(this.readProperty(thisArg, 'length', context), context);
+            const array = this.toArray(thisArg, context);
 
             const separator = values.length === 0 ? ',' : this.toString(values[0], context);
 
-            const arr = new Array(length);
-            for (let i = 0; i < length; i++) {
-                arr[i] = this.toString(this.readProperty(thisArg, i.toString(), context), context);
-            }
+            return stringValue(array.map(item => this.toString(item, context)).join(separator));
+        }));
 
-            return stringValue(arr.join(separator));
+        this.defineProperty(arrayPrototype, 'slice', this.objectMethod((thisArg, values, context) => {
+            const array = this.toArray(thisArg, context);
+
+            const start = values.length >= 1 ? this.toNumber(values[0], context) : undefined;
+            const end = values.length >= 2 ? this.toNumber(values[0], context) : undefined;
+
+            return this.constructArray(array.slice(start, end), context);
+        }));
+
+        this.defineProperty(arrayPrototype, 'forEach', this.objectMethod((thisArg, values, context) => {
+            const array = this.toArray(thisArg, context);
+
+            array.forEach((value, index) => this.executeFunction(values[0], undefinedValue, [value, numberValue(index)], context));
+
+            return undefinedValue;
         }));
 
         this.defineProperty(this.globals.TypeError.prototype as ObjectValue, 'toString', this.objectMethod((thisArg, args, context) => this.readProperty(thisArg, 'message', context)));
@@ -341,6 +368,12 @@ export class Engine {
         ], context), context);
     }
 
+    newReferenceError(message: string, context: Context): RuntimeError {
+        return new RuntimeError(this.constructObject(this.globals.ReferenceError, [
+            stringValue(message)
+        ], context), context);
+    }
+
     runGlobalCode(script: ParsedScript): void {
         this.globalScope.evaluateScript(script);
     }
@@ -390,6 +423,50 @@ export class Engine {
     }
 
     promiseConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
+    }
+
+    arrayBufferConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
+    }
+
+    typedArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
+    }
+
+    float64ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
+    }
+
+    float32ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
+    }
+
+    int32ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
+    }
+
+    int16ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
+    }
+
+    int8ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
+    }
+
+    uint32ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
+    }
+
+    uint16ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
+    }
+
+    uint8ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        return undefinedValue;
+    }
+
+    uint8ClampedArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
         return undefinedValue;
     }
 
@@ -521,9 +598,23 @@ export class Engine {
         }
     }
     
+    isInstanceOf(left: Value, right: Value, context: Context): boolean {
+        if (right.type !== 'object' || right.prototype !== this.functionPrototype) {
+            throw new NotImplementedError(`Right-hand side of 'instanceof' is not an object`, context);
+        }
+
+        if (left.type !== 'object') {
+            return false;
+        }
+
+        const prototype = this.readProperty(right, 'prototype', context);
+
+        return left.prototype === prototype;
+    }
+
     executeFunction(callee: Value, thisArg: Value, args: Value[], context: Context, newTarget: Value = undefinedValue): Value {
         if (callee.type !== 'object') {
-            throw new NotImplementedError('call is unsupported for ' + callee.type, context);
+            throw this.newReferenceError('call is unsupported for ' + callee.type, context);
         }
     
         if (callee.prototype !== this.functionPrototype) {
@@ -547,6 +638,10 @@ export class Engine {
 
     newObject(): ObjectValue {
         return objectValue(this.rootPrototype);
+    }
+
+    constructArray(elements: Value[], context: Context): ObjectValue {
+        return this.constructObject(this.globals.Array, elements, context);
     }
 
     constructObject(constructor: Value, args: Value[], context: Context, newTargetConstructor: Value = constructor): ObjectValue {
