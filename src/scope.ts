@@ -657,13 +657,9 @@ export class Scope {
     }
 
     functionValue(statement: FunctionNode, name: string | null = null) {
-        return this.engine.functionValue((thisArg, argValues, caller, newTarget) => {
-            if (newTarget !== undefinedValue) {
-                if ((statement.type === 'ArrowFunctionExpression') || statement.generator) {
-                    throw this.engine.newTypeError('function is not a constructor', this.createContext(statement));
-                }
-            }
+        const isConstructor = (statement.type !== 'ArrowFunctionExpression') && !statement.generator;
 
+        return this.engine.functionValue((thisArg, argValues, caller) => {
             if (statement.type === 'ArrowFunctionExpression' && statement.body.type !== 'BlockStatement') {
                 return this.evaluateExpression(statement.body);
             }
@@ -688,7 +684,7 @@ export class Scope {
             }
             
             return result || undefinedValue;
-        }, name);
+        }, { name, isConstructor });
     }
 
     localVariables(statement: FunctionNode, argValues: Value[]): ObjectValue {

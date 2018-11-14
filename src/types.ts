@@ -65,6 +65,7 @@ export type ObjectMethodInvoke = (thisArg: ObjectValue, argValues: Value[], cont
 
 export type FunctionInternalFields = {
     invoke: GeneralFunctionInvoke;
+    isConstructor: boolean;
 };
 
 export type Block = {

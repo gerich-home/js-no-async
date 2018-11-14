@@ -6,28 +6,34 @@ import { RuntimeError } from './runtimeError';
 import { Scope } from './scope';
 import { AccessorObjectPropertyDescriptor, Context, FunctionInternalFields, GeneralFunctionInvoke, MandatoryObjectPropertyDescriptorFields, ObjectMethodInvoke, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value, ValueObjectPropertyDescriptor } from './types';
 
+type FunctionOptions = {
+    name?: string | null;
+    prototype?: ObjectValue;
+    isConstructor?: boolean;
+};
+
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
     readonly functionPrototype = this.newObject();
-    readonly object = this.functionValue(this.objectConstructor.bind(this), 'Object', this.rootPrototype);
+    readonly object = this.functionValue(this.objectConstructor.bind(this), { name: 'Object', prototype: this.rootPrototype});
 
     readonly globals = {
         Object: this.object,
-        Function: this.functionValue(this.functionConstructor.bind(this), 'Function', this.functionPrototype),
-        Array: this.functionValue(this.arrayConstructor.bind(this), 'Array'),
-        String: this.functionValue(this.stringConstructor.bind(this), 'String'),
-        Date: this.functionValue(this.dateConstructor.bind(this), 'Date'),
-        Promise: this.functionValue(this.promiseConstructor.bind(this), 'Promise'),
-        Error: this.functionValue(this.errorConstructor.bind(this), 'Error'),
-        TypeError: this.functionValue(this.errorConstructor.bind(this), 'TypeError'),
-        EvalError: this.functionValue(this.errorConstructor.bind(this), 'EvalError'),
-        RangeError: this.functionValue(this.errorConstructor.bind(this), 'RangeError'),
-        ReferenceError: this.functionValue(this.errorConstructor.bind(this), 'ReferenceError'),
-        SyntaxError: this.functionValue(this.errorConstructor.bind(this), 'SyntaxError'),
-        URIError: this.functionValue(this.errorConstructor.bind(this), 'URIError'),
-        Number: this.functionValue(this.numberConstructor.bind(this), 'Number'),
-        Boolean: this.functionValue(this.booleanConstructor.bind(this), 'Boolean'),
-        Symbol: this.functionValue(this.symbolConstructor.bind(this), 'Symbol'),
+        Function: this.functionValue(this.functionConstructor.bind(this), { name: 'Function', prototype: this.functionPrototype}),
+        Array: this.functionValue(this.arrayConstructor.bind(this), { name: 'Array' }),
+        String: this.functionValue(this.stringConstructor.bind(this), { name: 'String' }),
+        Date: this.functionValue(this.dateConstructor.bind(this), { name: 'Date' }),
+        Promise: this.functionValue(this.promiseConstructor.bind(this), { name: 'Promise' }),
+        Error: this.functionValue(this.errorConstructor.bind(this), { name: 'Error' }),
+        TypeError: this.functionValue(this.errorConstructor.bind(this), { name: 'TypeError' }),
+        EvalError: this.functionValue(this.errorConstructor.bind(this), { name: 'EvalError' }),
+        RangeError: this.functionValue(this.errorConstructor.bind(this), { name: 'RangeError' }),
+        ReferenceError: this.functionValue(this.errorConstructor.bind(this), { name: 'ReferenceError' }),
+        SyntaxError: this.functionValue(this.errorConstructor.bind(this), { name: 'SyntaxError' }),
+        URIError: this.functionValue(this.errorConstructor.bind(this), { name: 'URIError' }),
+        Number: this.functionValue(this.numberConstructor.bind(this), { name: 'Number' }),
+        Boolean: this.functionValue(this.booleanConstructor.bind(this), { name: 'Boolean' }),
+        Symbol: this.functionValue(this.symbolConstructor.bind(this), { name: 'Symbol' }),
         Reflect: this.newObject(),
         log: this.functionValue((thisArg, values, context) => {
             console.log(...values.map(value => this.toString(value, context)));
@@ -435,25 +441,29 @@ export class Engine {
         }
     }
 
-    objectMethod(invoke: ObjectMethodInvoke, name: string | null = null, prototype: ObjectValue = this.newObject()): ObjectValue {
+    objectMethod(invoke: ObjectMethodInvoke, options?: FunctionOptions): ObjectValue {
         return this.functionValue((thisArg, argValues, context, newTarget) => {
             if (thisArg.type !== 'object') {
                 throw new NotImplementedError('calling object method with incorrect thisArg ' + thisArg.type, context);
             }
 
             return invoke(thisArg, argValues, context, newTarget);
-        }, name, prototype);
+        }, options);
     }
 
-    functionValue(invoke: GeneralFunctionInvoke, name: string | null = null, prototype: ObjectValue = this.newObject()): ObjectValue {
+    functionValue(invoke: GeneralFunctionInvoke, options?: FunctionOptions): ObjectValue {
         const internalFields: FunctionInternalFields = {
-            invoke
+            invoke,
+            isConstructor: (options && typeof options.isConstructor === 'boolean') ? options.isConstructor : true
         };
 
         const result = objectValue(this.functionPrototype, internalFields);
         
+        const prototype = (options && options.prototype) || this.newObject();
+        const name = options && options.name;
+
         this.defineProperty(result, 'prototype', prototype);
-        this.defineProperty(result, 'name', name === null ? undefinedValue : stringValue(name));
+        this.defineProperty(result, 'name', name ? stringValue(name) : undefinedValue);
 
         this.defineProperty(prototype, 'constructor', result);
 
@@ -520,7 +530,13 @@ export class Engine {
             throw new NotImplementedError('cannot call non-function', context);
         }
     
-        return (callee.internalFields as FunctionInternalFields).invoke(thisArg, args, context, newTarget);
+        const internalFields = callee.internalFields as FunctionInternalFields;
+
+        if (newTarget !== undefinedValue && !internalFields.isConstructor) {
+            throw this.newTypeError('function is not a constructor', context);
+        }
+
+        return internalFields.invoke(thisArg, args, context, newTarget);
     }
 
     executeMethod(value: ObjectValue, methodName: string, args: Value[], context: Context): Value {
@@ -544,6 +560,22 @@ export class Engine {
 
         if (newTargetConstructor.type !== 'object') {
             throw this.newTypeError('new is unsupported for target ' + newTargetConstructor.type, context);
+        }
+    
+        if (newTargetConstructor.prototype !== this.functionPrototype) {
+            throw this.newTypeError('cannot use new for non-function target', context);
+        }
+    
+        const internalFields = constructor.internalFields as FunctionInternalFields;
+
+        if (!internalFields.isConstructor) {
+            throw this.newTypeError('function is not a constructor', context);
+        }
+
+        const newTargetConstructorInternalFields = newTargetConstructor.internalFields as FunctionInternalFields;
+
+        if (!newTargetConstructorInternalFields.isConstructor) {
+            throw this.newTypeError('function is not a constructor', context);
         }
         
         const prototype = this.readProperty(newTargetConstructor, 'prototype', context);
