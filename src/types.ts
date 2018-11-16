@@ -68,6 +68,10 @@ export type FunctionInternalFields = {
     isConstructor: boolean;
 };
 
+export type HasGetPropertyDescriptor = {
+    getPropertyDescriptor(object: ObjectValue, propertyName: string, context: Context): ObjectPropertyDescriptor | null;
+};
+
 export type Block = {
     body: Statement[];
 };

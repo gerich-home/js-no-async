@@ -570,15 +570,11 @@ export class Scope {
     evaluateMemberExpression(expression: MemberExpression): Value {
         const object = this.evaluateExpression(expression.object);
         
-        const convertedObject = object.type === 'object' ?
-            object :
-            this.engine.constructObject(this.engine.Object, [object], this.createContext(expression));
+        const convertedObject = this.engine.toObject(object, this.createContext(expression));
 
         const propertyName = this.evaluatePropertyName(expression);
         
-        const result = this.engine.readProperty(convertedObject, propertyName, this.createContext(expression));
-        
-        return result;
+        return this.engine.readProperty(convertedObject, propertyName, this.createContext(expression));
     }
 
     evaluateAssignmentExpression(expression: AssignmentExpression): Value {
@@ -595,10 +591,11 @@ export class Scope {
     }
 
     evaluateIdentifier(expression: Identifier): Value {
-        const variable = this.engine.getPropertyDescriptor(this.variables, expression.name);
+        var context = this.createContext(expression);
+        const variable = this.engine.getPropertyDescriptor(this.variables, expression.name, context);
         
         if (variable !== null) {
-            return this.engine.readPropertyDescriptorValue(this.variables, variable, this.createContext(expression));
+            return this.engine.readPropertyDescriptorValue(this.variables, variable, context);
         }
 
         if (this.parent !== null) {
