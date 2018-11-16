@@ -46,6 +46,7 @@ export class Engine {
     readonly Boolean = this.functionValue(this.booleanConstructor.bind(this), { name: 'Boolean' });
     readonly Symbol = this.functionValue(this.symbolConstructor.bind(this), { name: 'Symbol' });
     readonly Reflect = this.newObject();
+    readonly Math = this.newObject();
     readonly log = this.functionValue((thisArg, values, context) => {
             console.log(...values.map(value => this.toString(value, context)));
             return undefinedValue;
@@ -194,6 +195,19 @@ export class Engine {
             return this.constructObject(args[0], constructorArgs, context, args.length < 3 ? args[0] : args[2]);
         }));
         
+        this.defineProperty(this.Math, 'pow', this.functionValue((thisArg, args, context) => {
+            const a = this.toNumber(args[0], context);
+            const b = this.toNumber(args[1], context);
+            
+            return numberValue(Math.pow(a, b));
+        }));
+        
+        this.defineProperty(this.Number, 'isNaN', this.functionValue((thisArg, args, context) => {
+            const a = this.toNumber(args[0], context);
+            
+            return booleanValue(Number.isNaN(a));
+        }));
+        
         this.defineProperty(this.readProperty(this.Date, 'prototype', null) as ObjectValue, 'getTimezoneOffset', this.objectMethod((thisArg, args, context) => {
             return undefinedValue;
         }));
@@ -281,6 +295,7 @@ export class Engine {
             Boolean: this.Boolean,
             Symbol: this.Symbol,
             Reflect: this.Reflect,
+            Math: this.Math,
             log: this.log,
         };
 
