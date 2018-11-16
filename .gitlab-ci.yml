@@ -20,6 +20,13 @@ build:
     untracked: true
     when: on_success
 
+test_custom:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TEST_GLOB: "testCode/**/*.js"
+
 test_harness:
   stage: test
   script:
