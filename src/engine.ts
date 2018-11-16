@@ -8,6 +8,7 @@ import { AccessorObjectPropertyDescriptor, Context, FunctionInternalFields, Gene
 
 type FunctionOptions = {
     name?: string | null;
+    functionPrototype?: ObjectValue;
     prototype?: ObjectValue;
     isConstructor?: boolean;
 };
@@ -16,6 +17,7 @@ export class Engine {
     readonly rootPrototype = objectValue(nullValue);
     readonly functionPrototype = objectValue(this.rootPrototype);
     readonly errorPrototype = objectValue(this.rootPrototype);
+    readonly typedArrayPrototype = this.functionValue((thisArg, vals, context) => {throw new NotImplementedError("Do not call TypedArray", context)});
     
     readonly Object = this.functionValue(this.objectConstructor.bind(this), { name: 'Object', prototype: this.rootPrototype});
     readonly Function = this.functionValue(this.functionConstructor.bind(this), { name: 'Function', prototype: this.functionPrototype });
@@ -31,16 +33,15 @@ export class Engine {
     readonly SyntaxError = this.functionValue(this.errorConstructor.bind(this), { name: 'SyntaxError', prototype: objectValue(this.errorPrototype) });
     readonly URIError = this.functionValue(this.errorConstructor.bind(this), { name: 'URIError', prototype: objectValue(this.errorPrototype) });
     readonly ArrayBuffer = this.functionValue(this.arrayBufferConstructor.bind(this), { name: 'ArrayBuffer' });
-    readonly TypedArray = this.functionValue(this.typedArrayConstructor.bind(this), { name: 'TypedArray' });
-    readonly Float64Array = this.functionValue(this.float64ArrayConstructor.bind(this), { name: 'Float64Array' });
-    readonly Float32Array = this.functionValue(this.float32ArrayConstructor.bind(this), { name: 'Float32Array' });
-    readonly Int32Array = this.functionValue(this.int32ArrayConstructor.bind(this), { name: 'Int32Array' });
-    readonly Int16Array = this.functionValue(this.int16ArrayConstructor.bind(this), { name: 'Int16Array' });
-    readonly Int8Array = this.functionValue(this.int8ArrayConstructor.bind(this), { name: 'Int8Array' });
-    readonly Uint32Array = this.functionValue(this.uint32ArrayConstructor.bind(this), { name: 'Uint32Array' });
-    readonly Uint16Array = this.functionValue(this.uint16ArrayConstructor.bind(this), { name: 'Uint16Array' });
-    readonly Uint8Array = this.functionValue(this.uint8ArrayConstructor.bind(this), { name: 'Uint8Array' });
-    readonly Uint8ClampedArray = this.functionValue(this.uint8ClampedArrayConstructor.bind(this), { name: 'Uint8ClampedArray' });
+    readonly Float64Array = this.functionValue(this.float64ArrayConstructor.bind(this), { name: 'Float64Array', functionPrototype: this.typedArrayPrototype });
+    readonly Float32Array = this.functionValue(this.float32ArrayConstructor.bind(this), { name: 'Float32Array', functionPrototype: this.typedArrayPrototype });
+    readonly Int32Array = this.functionValue(this.int32ArrayConstructor.bind(this), { name: 'Int32Array', functionPrototype: this.typedArrayPrototype });
+    readonly Int16Array = this.functionValue(this.int16ArrayConstructor.bind(this), { name: 'Int16Array', functionPrototype: this.typedArrayPrototype });
+    readonly Int8Array = this.functionValue(this.int8ArrayConstructor.bind(this), { name: 'Int8Array', functionPrototype: this.typedArrayPrototype });
+    readonly Uint32Array = this.functionValue(this.uint32ArrayConstructor.bind(this), { name: 'Uint32Array', functionPrototype: this.typedArrayPrototype });
+    readonly Uint16Array = this.functionValue(this.uint16ArrayConstructor.bind(this), { name: 'Uint16Array', functionPrototype: this.typedArrayPrototype });
+    readonly Uint8Array = this.functionValue(this.uint8ArrayConstructor.bind(this), { name: 'Uint8Array', functionPrototype: this.typedArrayPrototype });
+    readonly Uint8ClampedArray = this.functionValue(this.uint8ClampedArrayConstructor.bind(this), { name: 'Uint8ClampedArray', functionPrototype: this.typedArrayPrototype });
     readonly Number = this.functionValue(this.numberConstructor.bind(this), { name: 'Number' });
     readonly Boolean = this.functionValue(this.booleanConstructor.bind(this), { name: 'Boolean' });
     readonly Symbol = this.functionValue(this.symbolConstructor.bind(this), { name: 'Symbol' });
@@ -267,7 +268,6 @@ export class Engine {
             SyntaxError: this.SyntaxError,
             URIError: this.URIError,
             ArrayBuffer: this.ArrayBuffer,
-            TypedArray: this.TypedArray,
             Float64Array: this.Float64Array,
             Float32Array: this.Float32Array,
             Int32Array: this.Int32Array,
@@ -562,7 +562,8 @@ export class Engine {
             isConstructor: (options && typeof options.isConstructor === 'boolean') ? options.isConstructor : true
         };
 
-        const result = objectValue(this.functionPrototype, internalFields);
+        const functionPrototype = (options && options.functionPrototype) || this.functionPrototype;
+        const result = objectValue(functionPrototype, internalFields);
         
         const prototype = (options && options.prototype) || this.newObject();
         const name = options && options.name;
