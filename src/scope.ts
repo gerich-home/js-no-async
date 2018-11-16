@@ -417,7 +417,7 @@ export class Scope {
             case 'null':
                 return 'object';
             case 'object':
-                if (this.engine.isInstanceOf(value, this.engine.globals.Function, this.createContext(expression))) {
+                if (this.engine.isInstanceOf(value, this.engine.Function, this.createContext(expression))) {
                     return 'function';
                 }
                 break;
@@ -572,7 +572,7 @@ export class Scope {
         
         const convertedObject = object.type === 'object' ?
             object :
-            this.engine.constructObject(this.engine.object, [object], this.createContext(expression));
+            this.engine.constructObject(this.engine.Object, [object], this.createContext(expression));
 
         const propertyName = this.evaluatePropertyName(expression);
         

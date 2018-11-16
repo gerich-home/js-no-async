@@ -14,43 +14,41 @@ type FunctionOptions = {
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
-    readonly functionPrototype = this.newObject();
-    readonly object = this.functionValue(this.objectConstructor.bind(this), { name: 'Object', prototype: this.rootPrototype});
-
-    readonly globals = {
-        Object: this.object,
-        Function: this.functionValue(this.functionConstructor.bind(this), { name: 'Function', prototype: this.functionPrototype}),
-        Array: this.functionValue(this.arrayConstructor.bind(this), { name: 'Array' }),
-        String: this.functionValue(this.stringConstructor.bind(this), { name: 'String' }),
-        Date: this.functionValue(this.dateConstructor.bind(this), { name: 'Date' }),
-        Promise: this.functionValue(this.promiseConstructor.bind(this), { name: 'Promise' }),
-        Error: this.functionValue(this.errorConstructor.bind(this), { name: 'Error' }),
-        TypeError: this.functionValue(this.errorConstructor.bind(this), { name: 'TypeError' }),
-        EvalError: this.functionValue(this.errorConstructor.bind(this), { name: 'EvalError' }),
-        RangeError: this.functionValue(this.errorConstructor.bind(this), { name: 'RangeError' }),
-        ReferenceError: this.functionValue(this.errorConstructor.bind(this), { name: 'ReferenceError' }),
-        SyntaxError: this.functionValue(this.errorConstructor.bind(this), { name: 'SyntaxError' }),
-        URIError: this.functionValue(this.errorConstructor.bind(this), { name: 'URIError' }),
-        ArrayBuffer: this.functionValue(this.arrayBufferConstructor.bind(this), { name: 'ArrayBuffer' }),
-        TypedArray: this.functionValue(this.typedArrayConstructor.bind(this), { name: 'TypedArray' }),
-        Float64Array: this.functionValue(this.float64ArrayConstructor.bind(this), { name: 'Float64Array' }),
-        Float32Array: this.functionValue(this.float32ArrayConstructor.bind(this), { name: 'Float32Array' }),
-        Int32Array: this.functionValue(this.int32ArrayConstructor.bind(this), { name: 'Int32Array' }),
-        Int16Array: this.functionValue(this.int16ArrayConstructor.bind(this), { name: 'Int16Array' }),
-        Int8Array: this.functionValue(this.int8ArrayConstructor.bind(this), { name: 'Int8Array' }),
-        Uint32Array: this.functionValue(this.uint32ArrayConstructor.bind(this), { name: 'Uint32Array' }),
-        Uint16Array: this.functionValue(this.uint16ArrayConstructor.bind(this), { name: 'Uint16Array' }),
-        Uint8Array: this.functionValue(this.uint8ArrayConstructor.bind(this), { name: 'Uint8Array' }),
-        Uint8ClampedArray: this.functionValue(this.uint8ClampedArrayConstructor.bind(this), { name: 'Uint8ClampedArray' }),
-        Number: this.functionValue(this.numberConstructor.bind(this), { name: 'Number' }),
-        Boolean: this.functionValue(this.booleanConstructor.bind(this), { name: 'Boolean' }),
-        Symbol: this.functionValue(this.symbolConstructor.bind(this), { name: 'Symbol' }),
-        Reflect: this.newObject(),
-        log: this.functionValue((thisArg, values, context) => {
+    readonly functionPrototype = objectValue(this.rootPrototype);
+    readonly errorPrototype = objectValue(this.rootPrototype);
+    
+    readonly Object = this.functionValue(this.objectConstructor.bind(this), { name: 'Object', prototype: this.rootPrototype});
+    readonly Function = this.functionValue(this.functionConstructor.bind(this), { name: 'Function', prototype: this.functionPrototype });
+    readonly Array = this.functionValue(this.arrayConstructor.bind(this), { name: 'Array' });
+    readonly String = this.functionValue(this.stringConstructor.bind(this), { name: 'String' });
+    readonly Date = this.functionValue(this.dateConstructor.bind(this), { name: 'Date' });
+    readonly Promise = this.functionValue(this.promiseConstructor.bind(this), { name: 'Promise' });
+    readonly Error = this.functionValue(this.errorConstructor.bind(this), { name: 'Error', prototype: this.errorPrototype });
+    readonly TypeError = this.functionValue(this.errorConstructor.bind(this), { name: 'TypeError', prototype: objectValue(this.errorPrototype) });
+    readonly EvalError = this.functionValue(this.errorConstructor.bind(this), { name: 'EvalError', prototype: objectValue(this.errorPrototype) });
+    readonly RangeError = this.functionValue(this.errorConstructor.bind(this), { name: 'RangeError', prototype: objectValue(this.errorPrototype) });
+    readonly ReferenceError = this.functionValue(this.errorConstructor.bind(this), { name: 'ReferenceError', prototype: objectValue(this.errorPrototype) });
+    readonly SyntaxError = this.functionValue(this.errorConstructor.bind(this), { name: 'SyntaxError', prototype: objectValue(this.errorPrototype) });
+    readonly URIError = this.functionValue(this.errorConstructor.bind(this), { name: 'URIError', prototype: objectValue(this.errorPrototype) });
+    readonly ArrayBuffer = this.functionValue(this.arrayBufferConstructor.bind(this), { name: 'ArrayBuffer' });
+    readonly TypedArray = this.functionValue(this.typedArrayConstructor.bind(this), { name: 'TypedArray' });
+    readonly Float64Array = this.functionValue(this.float64ArrayConstructor.bind(this), { name: 'Float64Array' });
+    readonly Float32Array = this.functionValue(this.float32ArrayConstructor.bind(this), { name: 'Float32Array' });
+    readonly Int32Array = this.functionValue(this.int32ArrayConstructor.bind(this), { name: 'Int32Array' });
+    readonly Int16Array = this.functionValue(this.int16ArrayConstructor.bind(this), { name: 'Int16Array' });
+    readonly Int8Array = this.functionValue(this.int8ArrayConstructor.bind(this), { name: 'Int8Array' });
+    readonly Uint32Array = this.functionValue(this.uint32ArrayConstructor.bind(this), { name: 'Uint32Array' });
+    readonly Uint16Array = this.functionValue(this.uint16ArrayConstructor.bind(this), { name: 'Uint16Array' });
+    readonly Uint8Array = this.functionValue(this.uint8ArrayConstructor.bind(this), { name: 'Uint8Array' });
+    readonly Uint8ClampedArray = this.functionValue(this.uint8ClampedArrayConstructor.bind(this), { name: 'Uint8ClampedArray' });
+    readonly Number = this.functionValue(this.numberConstructor.bind(this), { name: 'Number' });
+    readonly Boolean = this.functionValue(this.booleanConstructor.bind(this), { name: 'Boolean' });
+    readonly Symbol = this.functionValue(this.symbolConstructor.bind(this), { name: 'Symbol' });
+    readonly Reflect = this.newObject();
+    readonly log = this.functionValue((thisArg, values, context) => {
             console.log(...values.map(value => this.toString(value, context)));
             return undefinedValue;
-        })
-    };
+        });
 
     readonly globalVars = this.newObject();
     readonly globalScope = new Scope(this, null, null, null, this.globalVars, this.globalVars);
@@ -58,7 +56,7 @@ export class Engine {
     constructor() {
         this.defineProperty(this.rootPrototype, 'toString', this.functionValue(() => stringValue('[object Object]')));
         this.defineProperty(this.rootPrototype, 'valueOf', this.functionValue(thisArg => thisArg));
-        this.defineProperty(this.rootPrototype, 'constructor', this.globals.Object);
+        this.defineProperty(this.rootPrototype, 'constructor', this.Object);
         this.defineProperty(this.rootPrototype, 'hasOwnProperty', this.objectMethod((thisArg, args, context) => booleanValue(thisArg.ownProperties.has(this.toString(args[0], context)))));
         
         this.defineProperty(this.rootPrototype, 'propertyIsEnumerable', this.objectMethod((thisArg, args, context) => {
@@ -71,7 +69,7 @@ export class Engine {
 
         this.defineProperty(this.functionPrototype, 'call', this.objectMethod((thisArg, args, context) => this.executeFunction(thisArg, args[0] as ObjectValue, args.slice(1), context)));
 
-        this.defineProperty(this.object, 'getOwnPropertyDescriptor', this.functionValue((thisArg, args, context) => {
+        this.defineProperty(this.Object, 'getOwnPropertyDescriptor', this.functionValue((thisArg, args, context) => {
             const object = args[0];
             
             if (object.type !== 'object') {
@@ -100,7 +98,7 @@ export class Engine {
             return resultDescriptor;
         }));
 
-        this.defineProperty(this.object, 'defineProperty', this.functionValue((thisArg, args, context) => {
+        this.defineProperty(this.Object, 'defineProperty', this.functionValue((thisArg, args, context) => {
             const object = args[0];
             if (object.type !== 'object') {
                 throw this.newTypeError('defineProperty should be called for object value', context);
@@ -179,7 +177,7 @@ export class Engine {
             return object;
         }));
 
-        this.defineProperty(this.object, 'getPrototypeOf', this.functionValue((thisArg, args, context) => {
+        this.defineProperty(this.Object, 'getPrototypeOf', this.functionValue((thisArg, args, context) => {
             const object = args[0];
             
             if (object.type !== 'object') {
@@ -189,17 +187,17 @@ export class Engine {
             return object.prototype;
         }));
         
-        this.defineProperty(this.globals.Reflect, 'construct', this.functionValue((thisArg, args, context) => {
+        this.defineProperty(this.Reflect, 'construct', this.functionValue((thisArg, args, context) => {
             const constructorArgs = this.toArray(args[1] as ObjectValue, context);
             
             return this.constructObject(args[0], constructorArgs, context, args.length < 3 ? args[0] : args[2]);
         }));
         
-        this.defineProperty(this.globals.Date.prototype as ObjectValue, 'getTimezoneOffset', this.objectMethod((thisArg, args, context) => {
+        this.defineProperty(this.readProperty(this.Date, 'prototype', null) as ObjectValue, 'getTimezoneOffset', this.objectMethod((thisArg, args, context) => {
             return undefinedValue;
         }));
         
-        const arrayPrototype = this.readProperty(this.globals.Array, 'prototype', null) as ObjectValue;
+        const arrayPrototype = this.readProperty(this.Array, 'prototype', null) as ObjectValue;
 
         this.defineProperty(arrayPrototype, 'push', this.objectMethod((thisArg, values, context) => {
             const lengthValue = this.readProperty(thisArg, 'length', context);
@@ -239,14 +237,14 @@ export class Engine {
             return undefinedValue;
         }));
 
-        this.defineProperty(this.globals.TypeError.prototype as ObjectValue, 'toString', this.objectMethod((thisArg, args, context) => this.readProperty(thisArg, 'message', context)));
-        this.defineProperty(this.globals.String.prototype as ObjectValue, 'length', {
+        this.defineProperty(this.errorPrototype, 'toString', this.objectMethod((thisArg, args, context) => this.readProperty(thisArg, 'message', context)));
+        this.defineProperty(this.readProperty(this.String, 'prototype', null) as ObjectValue, 'length', {
             descriptorType: 'accessor',
             getter: this.objectMethod((thisArg, args, context) => {
                 if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
-                    const wrappedValue = thisArg.internalFields['wrappedValue'];
-                    if (wrappedValue instanceof String) {
-                        return numberValue(wrappedValue.length);
+                    const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
+                    if (wrappedValue.type === 'string') {
+                        return numberValue(wrappedValue.value.length);
                     }
                 }
 
@@ -254,10 +252,40 @@ export class Engine {
             })
         });
         
-        Object.keys(this.globals)
-            .forEach((name) => {
-                this.defineProperty(this.globalScope.variables, name, (this.globals as any)[name]);
-            });
+        const globals = {
+            Object: this.Object,
+            Function: this.Function,
+            Array: this.Array,
+            String: this.String,
+            Date: this.Date,
+            Promise: this.Promise,
+            Error: this.Error,
+            TypeError: this.TypeError,
+            EvalError: this.EvalError,
+            RangeError: this.RangeError,
+            ReferenceError: this.ReferenceError,
+            SyntaxError: this.SyntaxError,
+            URIError: this.URIError,
+            ArrayBuffer: this.ArrayBuffer,
+            TypedArray: this.TypedArray,
+            Float64Array: this.Float64Array,
+            Float32Array: this.Float32Array,
+            Int32Array: this.Int32Array,
+            Int16Array: this.Int16Array,
+            Int8Array: this.Int8Array,
+            Uint32Array: this.Uint32Array,
+            Uint16Array: this.Uint16Array,
+            Uint8Array: this.Uint8Array,
+            Uint8ClampedArray: this.Uint8ClampedArray,
+            Number: this.Number,
+            Boolean: this.Boolean,
+            Symbol: this.Symbol,
+            Reflect: this.Reflect,
+            log: this.log,
+        };
+
+        Object.keys(globals)
+            .forEach(name => this.defineProperty(this.globalScope.variables, name, (globals as any)[name]));
     }
 
     defineProperty(object: ObjectValue, propertyName: string, value: Value): void;
@@ -363,13 +391,13 @@ export class Engine {
     }
 
     newTypeError(message: string, context: Context): RuntimeError {
-        return new RuntimeError(this.constructObject(this.globals.TypeError, [
+        return new RuntimeError(this.constructObject(this.TypeError, [
             stringValue(message)
         ], context), context);
     }
 
     newReferenceError(message: string, context: Context): RuntimeError {
-        return new RuntimeError(this.constructObject(this.globals.ReferenceError, [
+        return new RuntimeError(this.constructObject(this.ReferenceError, [
             stringValue(message)
         ], context), context);
     }
@@ -389,11 +417,11 @@ export class Engine {
             case 'undefined':
                 return objectValue(this.rootPrototype);
             case 'number':
-                return this.constructObject(this.globals.Number, args, context);
+                return this.constructObject(this.Number, args, context);
             case 'boolean':
-                return this.constructObject(this.globals.Boolean, args, context);
+                return this.constructObject(this.Boolean, args, context);
             case 'string':
-                return this.constructObject(this.globals.String, args, context);
+                return this.constructObject(this.String, args, context);
             case 'object':
                 return arg;
         }
@@ -599,7 +627,7 @@ export class Engine {
     }
     
     isInstanceOf(left: Value, right: Value, context: Context): boolean {
-        if (right.type !== 'object' || right.prototype !== this.functionPrototype) {
+        if (right.type !== 'object' || right.prototype !== this.Function.prototype) {
             throw new NotImplementedError(`Right-hand side of 'instanceof' is not an object`, context);
         }
 
@@ -617,7 +645,7 @@ export class Engine {
             throw this.newReferenceError('call is unsupported for ' + callee.type, context);
         }
     
-        if (callee.prototype !== this.functionPrototype) {
+        if (callee.prototype !== this.Function.prototype) {
             throw new NotImplementedError('cannot call non-function', context);
         }
     
@@ -641,7 +669,7 @@ export class Engine {
     }
 
     constructArray(elements: Value[], context: Context): ObjectValue {
-        return this.constructObject(this.globals.Array, elements, context);
+        return this.constructObject(this.Array, elements, context);
     }
 
     constructObject(constructor: Value, args: Value[], context: Context, newTargetConstructor: Value = constructor): ObjectValue {
@@ -649,7 +677,7 @@ export class Engine {
             throw new NotImplementedError('new is unsupported for ' + constructor.type, context);
         }
     
-        if (constructor.prototype !== this.functionPrototype) {
+        if (constructor.prototype !== this.Function.prototype) {
             throw this.newTypeError('cannot use new for non-function', context);
         }
 
@@ -657,7 +685,7 @@ export class Engine {
             throw this.newTypeError('new is unsupported for target ' + newTargetConstructor.type, context);
         }
     
-        if (newTargetConstructor.prototype !== this.functionPrototype) {
+        if (newTargetConstructor.prototype !== this.Function.prototype) {
             throw this.newTypeError('cannot use new for non-function target', context);
         }
     
