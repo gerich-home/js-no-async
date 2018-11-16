@@ -378,6 +378,8 @@ export class Scope {
                 return numberValue(this.engine.toNumber(argument, this.createContext(expression)));
             case '-':
                 return numberValue(-this.engine.toNumber(argument, this.createContext(expression)));
+            case '~':
+                return numberValue(~this.engine.toNumber(argument, this.createContext(expression)));
             case '!':
                 return booleanValue(!this.engine.toBoolean(argument));
             case 'typeof':
@@ -445,6 +447,20 @@ export class Scope {
                 return numberValue(this.engine.toNumber(left, this.createContext(expression)) ** this.engine.toNumber(right, this.createContext(expression)));
             case '/':
                 return numberValue(this.engine.toNumber(left, this.createContext(expression)) / this.engine.toNumber(right, this.createContext(expression)));
+            case '%':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) % this.engine.toNumber(right, this.createContext(expression)));
+            case '&':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) & this.engine.toNumber(right, this.createContext(expression)));
+            case '|':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) | this.engine.toNumber(right, this.createContext(expression)));
+            case '^':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) ^ this.engine.toNumber(right, this.createContext(expression)));
+            case '<<':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) << this.engine.toNumber(right, this.createContext(expression)));
+            case '>>':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) >> this.engine.toNumber(right, this.createContext(expression)));
+            case '>>>':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) >>> this.engine.toNumber(right, this.createContext(expression)));
             case '===':
                 return booleanValue(this.strictEqual(left, right));
             case '!==':
@@ -578,9 +594,56 @@ export class Scope {
     }
 
     evaluateAssignmentExpression(expression: AssignmentExpression): Value {
-        const value = this.evaluateExpression(expression.right);
+        const value = this.getNewValue(expression);
         this.assignValue(value, expression.left);
         return value;
+    }
+
+    getNewValue(expression: AssignmentExpression): Value {
+        const right = this.evaluateExpression(expression.right);
+        
+        if (expression.operator === '=') {
+            return right;
+        }
+
+        if (expression.left.type !== 'Identifier' && expression.left.type !== 'MemberExpression') {
+            throw new NotImplementedError('left part of assignment operator is invalid', this.createContext(expression));
+        }
+
+        const left = this.evaluateExpression(expression.left);
+
+        switch(expression.operator) {
+            case '+=':
+                if (left.type === 'string' || right.type === 'string') {
+                    return stringValue(this.engine.toString(left, this.createContext(expression)) + this.engine.toString(right, this.createContext(expression)));
+                } else {
+                    return numberValue(this.engine.toNumber(left, this.createContext(expression)) + this.engine.toNumber(right, this.createContext(expression)));
+                }
+            case '-=':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) - this.engine.toNumber(right, this.createContext(expression)));
+            case '*=':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) * this.engine.toNumber(right, this.createContext(expression)));
+            case '**=':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) ** this.engine.toNumber(right, this.createContext(expression)));
+            case '/=':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) / this.engine.toNumber(right, this.createContext(expression)));
+            case '%=':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) % this.engine.toNumber(right, this.createContext(expression)));
+            case '&=':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) & this.engine.toNumber(right, this.createContext(expression)));
+            case '|=':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) | this.engine.toNumber(right, this.createContext(expression)));
+            case '^=':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) ^ this.engine.toNumber(right, this.createContext(expression)));
+            case '<<=':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) << this.engine.toNumber(right, this.createContext(expression)));
+            case '>>=':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) >> this.engine.toNumber(right, this.createContext(expression)));
+            case '>>>=':
+                return numberValue(this.engine.toNumber(left, this.createContext(expression)) >>> this.engine.toNumber(right, this.createContext(expression)));
+        }
+        
+        throw new NotImplementedError('unsupported operator ' + expression.operator, this.createContext(expression));
     }
 
     evaluateUpdateExpression(expression: UpdateExpression): Value {
