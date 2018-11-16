@@ -1,5 +1,5 @@
 {
-  "watch": ["src", "testCode"],
+  "watch": ["src", "test262/harness", "test262/test"],
   "ext": "js,ts",
   "exec": "ts-node ./src/index.ts",
   "env": {
