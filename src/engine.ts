@@ -256,6 +256,17 @@ export class Engine {
         
         const stringPrototype = (this.readProperty(this.String, 'prototype', null) as ObjectValue);
 
+        this.defineProperty(stringPrototype, 'valueOf', this.functionValue((thisArg, args, context) => {
+            if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
+                const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
+                if (wrappedValue.type === 'string') {
+                    return wrappedValue;
+                }
+            }
+
+            throw this.newTypeError('String.valueOf failed', context);
+        }));
+        
         this.defineProperty(stringPrototype, 'length', {
             descriptorType: 'accessor',
             getter: this.objectMethod((thisArg, args, context) => {
@@ -639,7 +650,9 @@ export class Engine {
             case 'null':
                 return 'null';
             case 'object':
-                return this.toString(this.executeMethod(value, 'toString', [], context), context);
+                const internalValue = this.executeMethod(value, 'valueOf', [], context);
+                
+                return this.toString(internalValue === value ? this.executeMethod(value, 'toString', [], context) : internalValue, context);
             case 'undefined':
                 return 'undefined';
         }
