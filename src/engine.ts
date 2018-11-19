@@ -209,7 +209,7 @@ export class Engine {
         }));
         
         this.defineProperty(this.readProperty(this.Date, 'prototype', null) as ObjectValue, 'getTimezoneOffset', this.objectMethod((thisArg, args, context) => {
-            return undefinedValue;
+            return numberValue(0);
         }));
         
         const arrayPrototype = this.readProperty(this.Array, 'prototype', null) as ObjectValue;
@@ -254,6 +254,19 @@ export class Engine {
 
         this.defineProperty(this.errorPrototype, 'toString', this.objectMethod((thisArg, args, context) => this.readProperty(thisArg, 'message', context)));
         
+        const numberPrototype = (this.readProperty(this.Number, 'prototype', null) as ObjectValue);
+
+        this.defineProperty(numberPrototype, 'valueOf', this.objectMethod((thisArg, args, context) => {
+            if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
+                const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
+                if (wrappedValue.type === 'number') {
+                    return wrappedValue;
+                }
+            }
+
+            throw this.newTypeError('Number.valueOf failed', context);
+        }));
+
         const stringPrototype = (this.readProperty(this.String, 'prototype', null) as ObjectValue);
 
         this.defineProperty(stringPrototype, 'valueOf', this.objectMethod((thisArg, args, context) => {
@@ -708,9 +721,13 @@ export class Engine {
         }
     }
     
+    isFunction(value: Value): value is ObjectValue & false {
+        return value.type === 'object' && this.isPrototypeOf(this.functionPrototype, value);
+    }
+
     isInstanceOf(left: Value, right: Value, context: Context): boolean {
-        if (right.type !== 'object' || right.prototype !== this.Function.prototype) {
-            throw new NotImplementedError(`Right-hand side of 'instanceof' is not an object`, context);
+        if (!this.isFunction(right)) {
+            throw new NotImplementedError(`Right-hand side of 'instanceof' is not a function`, context);
         }
 
         if (left.type !== 'object') {
@@ -720,6 +737,18 @@ export class Engine {
         const prototype = this.readProperty(right, 'prototype', context);
 
         return left.prototype === prototype;
+    }
+    
+    isPrototypeOf(prototype: ObjectValue, value: ObjectValue): boolean {
+        if (value.prototype.type === 'null') {
+            return false;
+        }
+
+        if (prototype === value.prototype) {
+            return true;
+        }
+
+        return this.isPrototypeOf(prototype, value.prototype);
     }
 
     executeFunction(callee: Value, thisArg: Value, args: Value[], context: Context, newTarget: Value = undefinedValue): Value {
