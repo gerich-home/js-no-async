@@ -18,10 +18,12 @@ function decimalToHexString(n) {
     log(n)
   }
   log('while 2')
+  log(s.length)
   while (s.length < 4) {
     s = "0" + s;
     log(s)
   }
+  log(s)
   return s;
 }
 

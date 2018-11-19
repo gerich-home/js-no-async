@@ -4,7 +4,7 @@ import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, string
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
 import { Scope } from './scope';
-import { AccessorObjectPropertyDescriptor, Context, FunctionInternalFields, GeneralFunctionInvoke, MandatoryObjectPropertyDescriptorFields, ObjectMethodInvoke, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value, ValueObjectPropertyDescriptor, HasGetPropertyDescriptor } from './types';
+import { AccessorObjectPropertyDescriptor, Context, FunctionInternalFields, GeneralFunctionInvoke, HasGetPropertyDescriptor, MandatoryObjectPropertyDescriptorFields, ObjectMethodInvoke, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value, ValueObjectPropertyDescriptor } from './types';
 
 type FunctionOptions = {
     name?: string | null;
@@ -302,7 +302,7 @@ export class Engine {
             const index = Number(propertyName);
 
             if (isNaN(Number(propertyName)) || index < 0) {
-                this.getDefinedPropertyDescriptor(object, propertyName, context);
+                return this.getDefinedPropertyDescriptor(object, propertyName, context);
             }
 
             return {
