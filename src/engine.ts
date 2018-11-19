@@ -256,7 +256,7 @@ export class Engine {
         
         const stringPrototype = (this.readProperty(this.String, 'prototype', null) as ObjectValue);
 
-        this.defineProperty(stringPrototype, 'valueOf', this.functionValue((thisArg, args, context) => {
+        this.defineProperty(stringPrototype, 'valueOf', this.objectMethod((thisArg, args, context) => {
             if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
                 const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
                 if (wrappedValue.type === 'string') {
