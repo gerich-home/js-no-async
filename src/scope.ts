@@ -429,8 +429,8 @@ export class Scope {
     }
 
     evaluateBinaryExpression(expression: BinaryExpression): Value {
-        const left = this.evaluateExpression(expression.left);
-        const right = this.evaluateExpression(expression.right);
+        const left = this.engine.valueOf(this.evaluateExpression(expression.left), this.createContext(expression.left));
+        const right = this.engine.valueOf(this.evaluateExpression(expression.right), this.createContext(expression.right));
 
         switch (expression.operator) {
             case '+':

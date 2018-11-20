@@ -663,7 +663,7 @@ export class Engine {
             case 'null':
                 return 'null';
             case 'object':
-                const internalValue = this.executeMethod(value, 'valueOf', [], context);
+                const internalValue = this.valueOf(value, context);
                 
                 return this.toString(internalValue === value ? this.executeMethod(value, 'toString', [], context) : internalValue, context);
             case 'undefined':
@@ -699,10 +699,18 @@ export class Engine {
             case 'null':
                 return 0;
             case 'object':
-                return this.toNumber(this.executeMethod(value, 'valueOf', [], context), context);
+                return this.toNumber(this.valueOf(value, context), context);
             case 'undefined':
                 return NaN;
         }
+    }
+
+    valueOf(value: Value, context: Context): Value {
+        if (value.type !== 'object') {
+            return value;
+        }
+        
+        return this.executeMethod(value, 'valueOf', [], context);
     }
 
     toObject(value: Value, context: Context): ObjectValue {
