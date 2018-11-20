@@ -53,35 +53,46 @@ async function run() {
         const code = await readFileAsync(file);
 
         const config = extractYaml(code);
-
-        const engine = new Engine();
-
-        try {
-            // console.log(`RUN:      ${file}`);
-            engine.runGlobalCode(allHarnessCode['assert.js']);
-            engine.runGlobalCode(allHarnessCode['sta.js']);
-            (config.includes || [])
-                .forEach((include: string) => {
-                    engine.runGlobalCode(allHarnessCode[include]);
-                });
-            engine.runGlobalCode(parseScript(code, file));
         
-            if (config.negative) {
+        if (config.negative && config.negative.phase === 'parse') {
+            try {
+                parseScript(code, file);
                 console.log(`- FAILED: ${file}`);
-                console.log('Unexpected positive result');
                 counts.failed++;
-            } else {
+            } catch(e) {
                 console.log(`+ PASS:   ${file}`);
                 counts.passed++;
             }
-        } catch(e) {
-            if (config.negative) {
-                console.log(`+ PASS:   ${file}`);
-                counts.passed++;
-            } else {
-                console.log(`- FAILED: ${file}`);
-                console.log('Engine error', e.message);
-                counts.failed++;
+        } else {
+            const engine = new Engine();
+
+            try {
+                // console.log(`RUN:      ${file}`);
+                engine.runGlobalCode(allHarnessCode['assert.js']);
+                engine.runGlobalCode(allHarnessCode['sta.js']);
+                (config.includes || [])
+                    .forEach((include: string) => {
+                        engine.runGlobalCode(allHarnessCode[include]);
+                    });
+                engine.runGlobalCode(parseScript(code, file));
+        
+                if (config.negative) {
+                    console.log(`- FAILED: ${file}`);
+                    console.log('Unexpected positive result');
+                    counts.failed++;
+                } else {
+                    console.log(`+ PASS:   ${file}`);
+                    counts.passed++;
+                }
+            } catch(e) {
+                if (config.negative) {
+                    console.log(`+ PASS:   ${file}`);
+                    counts.passed++;
+                } else {
+                    console.log(`- FAILED: ${file}`);
+                    console.log('Engine error', e.message);
+                    counts.failed++;
+                }
             }
         }
     }
