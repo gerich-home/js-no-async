@@ -4,26 +4,22 @@ import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, string
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
 import { Scope } from './scope';
-import { AccessorObjectPropertyDescriptor, Context, FunctionInternalFields, GeneralFunctionInvoke, HasGetPropertyDescriptor, MandatoryObjectPropertyDescriptorFields, ObjectMethodInvoke, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value, ValueObjectPropertyDescriptor } from './types';
-
-type FunctionOptions = {
-    name?: string | null;
-    functionPrototype?: ObjectValue;
-    prototype?: ObjectValue;
-    isConstructor?: boolean;
-};
+import { AccessorObjectPropertyDescriptor, Context, FunctionInternalFields, FunctionOptions, GeneralFunctionInvoke, HasGetPropertyDescriptor, MandatoryObjectPropertyDescriptorFields, ObjectMethodInvoke, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value, ValueObjectPropertyDescriptor } from './types';
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
     readonly functionPrototype = objectValue(this.rootPrototype);
     readonly errorPrototype = objectValue(this.rootPrototype);
-    readonly typedArrayPrototype = this.functionValue((thisArg, vals, context) => {throw new NotImplementedError("Do not call TypedArray", context)});
+    readonly typedArrayPrototype = this.functionValue((thisArg, vals, context) => {
+        throw new NotImplementedError("Do not call TypedArray", context);
+    });
     
     readonly Object = this.functionValue(this.objectConstructor.bind(this), { name: 'Object', prototype: this.rootPrototype});
     readonly Function = this.functionValue(this.functionConstructor.bind(this), { name: 'Function', prototype: this.functionPrototype });
     readonly Array = this.functionValue(this.arrayConstructor.bind(this), { name: 'Array' });
     readonly String = this.functionValue(this.stringConstructor.bind(this), { name: 'String' });
     readonly Date = this.functionValue(this.dateConstructor.bind(this), { name: 'Date' });
+    readonly RegExp = this.functionValue(this.regExpConstructor.bind(this), { name: 'RegExp' });
     readonly Promise = this.functionValue(this.promiseConstructor.bind(this), { name: 'Promise' });
     readonly Error = this.functionValue(this.errorConstructor.bind(this), { name: 'Error', prototype: this.errorPrototype });
     readonly TypeError = this.functionValue(this.errorConstructor.bind(this), { name: 'TypeError', prototype: objectValue(this.errorPrototype) });
@@ -208,6 +204,12 @@ export class Engine {
             return booleanValue(Number.isNaN(a));
         }));
         
+        const regExpPrototype = this.readProperty(this.RegExp, 'prototype', null) as ObjectValue;
+        
+        this.defineProperty(regExpPrototype, 'test', this.objectMethod((thisArg, args, context) => {
+            return booleanValue(thisArg.internalFields['regex'].test(this.toString(args[0], context)));
+        }));
+
         const datePrototype = this.readProperty(this.Date, 'prototype', null) as ObjectValue;
         
         this.defineProperty(datePrototype, 'getTimezoneOffset', this.objectMethod((thisArg, args, context) => {
@@ -339,12 +341,16 @@ export class Engine {
             } as ObjectPropertyDescriptor;
         };
         
+        this.defineProperty(this.typedArrayPrototype, 'fill', this.objectMethod((thisArg, args, context) => undefinedValue));
+        this.defineProperty(this.typedArrayPrototype, 'forEach', this.objectMethod((thisArg, args, context) => undefinedValue));
+
         const globals = {
             Object: this.Object,
             Function: this.Function,
             Array: this.Array,
             String: this.String,
             Date: this.Date,
+            RegExp: this.RegExp,
             Promise: this.Promise,
             Error: this.Error,
             TypeError: this.TypeError,
@@ -530,6 +536,11 @@ export class Engine {
 
     dateConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
         thisArg.internalFields['date'] = new (Date as any)(...args.slice(0, 7).map(arg => this.toNumber(arg, context)));
+        return undefinedValue;
+    }
+
+    regExpConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        thisArg.internalFields['regex'] = new RegExp(this.toString(args[0], context), this.toString(args[1], context));
         return undefinedValue;
     }
 

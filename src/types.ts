@@ -87,3 +87,10 @@ export type FunctionContext = {
     node: FunctionNode;
     scope: Scope;
 };
+
+export type FunctionOptions = {
+    name?: string | null;
+    functionPrototype?: ObjectValue;
+    prototype?: ObjectValue;
+    isConstructor?: boolean;
+};

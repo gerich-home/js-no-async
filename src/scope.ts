@@ -1,4 +1,4 @@
-import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForInStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, ObjectProperty, PatternLike, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, WhileStatement } from '@babel/types';
+import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForInStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, ObjectProperty, PatternLike, RegExpLiteral, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, WhileStatement } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { NotImplementedError } from './notImplementedError';
@@ -151,6 +151,8 @@ export class Scope {
                 return this.evaluateUpdateExpression(expression);
             case 'Identifier':
                 return this.evaluateIdentifier(expression);
+            case 'RegExpLiteral':
+                return this.evaluateRegExpLiteral(expression);
             case 'ThisExpression':
                 return this.evaluateThisExpression(expression);
         }
@@ -666,6 +668,13 @@ export class Scope {
         }
 
         return undefinedValue;
+    }
+
+    evaluateRegExpLiteral(expression: RegExpLiteral): Value {
+        return this.engine.constructObject(this.engine.RegExp, [
+            stringValue(expression.pattern),
+            stringValue(expression.flags)
+        ], this.createContext(expression));
     }
 
     assignIdentifier(value: Value, to: Identifier): void {
