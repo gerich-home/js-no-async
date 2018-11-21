@@ -302,22 +302,19 @@ export class Engine {
             })
         });
 
-        this.defineProperty(stringPrototype, 'slice', {
-            descriptorType: 'accessor',
-            getter: this.objectMethod((thisArg, args, context) => {
-                if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
-                    const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
-                    if (wrappedValue.type === 'string') {
-                        const start = args.length >= 1 ? this.toNumber(args[0], context) : undefined;
-                        const end = args.length >= 2 ? this.toNumber(args[0], context) : undefined;
+        this.defineProperty(stringPrototype, 'slice', this.objectMethod((thisArg, args, context) => {
+            if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
+                const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
+                if (wrappedValue.type === 'string') {
+                    const start = args.length >= 1 ? this.toNumber(args[0], context) : undefined;
+                    const end = args.length >= 2 ? this.toNumber(args[0], context) : undefined;
 
-                        return stringValue(wrappedValue.value.slice(start, end));
-                    }
+                    return stringValue(wrappedValue.value.slice(start, end));
                 }
+            }
 
-                throw this.newTypeError('String.slice failed', context);
-            })
-        });
+            throw this.newTypeError('String.slice failed', context);
+        }));
         
         (stringPrototype.internalFields as HasGetPropertyDescriptor).getPropertyDescriptor = (object, propertyName, context) => {
             const index = Number(propertyName);
@@ -642,11 +639,9 @@ export class Engine {
 
     objectMethod(invoke: ObjectMethodInvoke, options?: FunctionOptions): ObjectValue {
         return this.functionValue((thisArg, argValues, context, newTarget) => {
-            if (thisArg.type !== 'object') {
-                throw new NotImplementedError('calling object method with incorrect thisArg ' + thisArg.type, context);
-            }
+            const thisAsObject = this.toObject(thisArg, context);
 
-            return invoke(thisArg, argValues, context, newTarget);
+            return invoke(thisAsObject, argValues, context, newTarget);
         }, options);
     }
 
