@@ -208,8 +208,14 @@ export class Engine {
             return booleanValue(Number.isNaN(a));
         }));
         
-        this.defineProperty(this.readProperty(this.Date, 'prototype', null) as ObjectValue, 'getTimezoneOffset', this.objectMethod((thisArg, args, context) => {
-            return numberValue(0);
+        const datePrototype = this.readProperty(this.Date, 'prototype', null) as ObjectValue;
+        
+        this.defineProperty(datePrototype, 'getTimezoneOffset', this.objectMethod((thisArg, args, context) => {
+            return numberValue(thisArg.internalFields['date'].getTimezoneOffset());
+        }));
+        
+        this.defineProperty(datePrototype, 'valueOf', this.objectMethod((thisArg, args, context) => {
+            return numberValue(thisArg.internalFields['date'].valueOf());
         }));
         
         const arrayPrototype = this.readProperty(this.Array, 'prototype', null) as ObjectValue;
@@ -523,6 +529,7 @@ export class Engine {
     }
 
     dateConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+        thisArg.internalFields['date'] = new Date(...args.slice(0, 7).map(arg => this.toNumber(arg, context)));
         return undefinedValue;
     }
 
