@@ -529,7 +529,7 @@ export class Engine {
     }
 
     dateConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        thisArg.internalFields['date'] = new Date(...args.slice(0, 7).map(arg => this.toNumber(arg, context)));
+        thisArg.internalFields['date'] = new (Date as any)(...args.slice(0, 7).map(arg => this.toNumber(arg, context)));
         return undefinedValue;
     }
 
