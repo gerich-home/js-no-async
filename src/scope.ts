@@ -3,12 +3,7 @@ import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
-import { BooleanValue, Context, FunctionContext, FunctionNode, NumberValue, ObjectValue, StringValue, Value } from './types';
-
-type CallStackEntry = {
-    caller: Context;
-    callee: FunctionContext;
-};
+import { BooleanValue, CallStackEntry, Context, FunctionNode, NumberValue, ObjectValue, StringValue, Value } from './types';
 
 function isFunctionNode(node: Node): boolean {
     const type = node.type;

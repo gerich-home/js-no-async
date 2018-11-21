@@ -88,6 +88,11 @@ export type FunctionContext = {
     scope: Scope;
 };
 
+export type CallStackEntry = {
+    caller: Context;
+    callee: FunctionContext;
+};
+
 export type FunctionOptions = {
     name?: string | null;
     functionPrototype?: ObjectValue;
