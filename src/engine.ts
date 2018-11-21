@@ -651,6 +651,26 @@ export class Engine {
 
         return result;
     }
+
+    valueOf(value: Value, context: Context): Exclude<Value, ObjectValue> {
+        if (value.type !== 'object') {
+            return value;
+        }
+        
+        const internalValue = this.executeMethod(value, 'valueOf', [], context);
+        
+        if (internalValue.type !== 'object') {
+            return internalValue;
+        }
+
+        const stringResult = this.executeMethod(value, 'toString', [], context);
+        
+        if (stringResult.type === 'object') {
+            throw this.newTypeError('Cannot convert object to primitive value', context);
+        }
+
+        return stringResult;
+    }
     
     toString(value: Value, context: Context): string {
         switch(value.type) {
@@ -665,7 +685,7 @@ export class Engine {
             case 'object':
                 const internalValue = this.valueOf(value, context);
                 
-                return this.toString(internalValue === value ? this.executeMethod(value, 'toString', [], context) : internalValue, context);
+                return this.toString(internalValue, context);
             case 'undefined':
                 return 'undefined';
         }
@@ -703,14 +723,6 @@ export class Engine {
             case 'undefined':
                 return NaN;
         }
-    }
-
-    valueOf(value: Value, context: Context): Value {
-        if (value.type !== 'object') {
-            return value;
-        }
-        
-        return this.executeMethod(value, 'valueOf', [], context);
     }
 
     toObject(value: Value, context: Context): ObjectValue {
