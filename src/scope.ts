@@ -343,6 +343,17 @@ export class Scope {
 
         const thisArg = this.getThisArg(expression.callee);
         const args = expression.arguments.map(arg => this.evaluateExpression(arg));
+        
+        if (!this.engine.isFunction(callee)) {
+            const start = expression.callee.start;
+            const end = expression.callee.end;
+
+            if (this.script && start !== null && end !== null) {
+                throw this.engine.newReferenceError(this.script.sourceCode.slice(start, end) + ' is not a function', this.createContext(expression));
+            } else {
+                throw this.engine.newReferenceError('cannot call non-function ' + callee.type, this.createContext(expression));
+            }
+        }
 
         return this.engine.executeFunction(callee, thisArg, args, this.createContext(expression));
     }
@@ -380,7 +391,7 @@ export class Scope {
             case '!':
                 return booleanValue(!this.engine.toBoolean(argument));
             case 'typeof':
-                return stringValue(this.typeofValue(argument, expression));
+                return stringValue(this.typeofValue(argument));
             case 'delete':
                 return this.evaluateDeleteUnaryExpression(expression);
         }
@@ -411,12 +422,12 @@ export class Scope {
         return booleanValue(object.ownProperties.delete(propertyName));
     }
 
-    typeofValue(value: Value, expression: Expression): Value['type'] | 'function' {
+    typeofValue(value: Value): Value['type'] | 'function' {
         switch (value.type) {
             case 'null':
                 return 'object';
             case 'object':
-                if (this.engine.isInstanceOf(value, this.engine.Function, this.createContext(expression))) {
+                if (this.engine.isFunction(value)) {
                     return 'function';
                 }
                 break;

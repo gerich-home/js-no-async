@@ -10,7 +10,8 @@ export class Engine {
     readonly rootPrototype = objectValue(nullValue);
     readonly functionPrototype = objectValue(this.rootPrototype);
     readonly errorPrototype = objectValue(this.rootPrototype);
-    readonly typedArrayPrototype = this.functionValue((thisArg, vals, context) => {
+    readonly typedArrayPrototype = objectValue(this.rootPrototype);
+    readonly typedArrayFunctionPrototype = this.functionValue((thisArg, vals, context) => {
         throw new NotImplementedError("Do not call TypedArray", context);
     });
     
@@ -29,15 +30,15 @@ export class Engine {
     readonly SyntaxError = this.functionValue(this.errorConstructor.bind(this), { name: 'SyntaxError', prototype: objectValue(this.errorPrototype) });
     readonly URIError = this.functionValue(this.errorConstructor.bind(this), { name: 'URIError', prototype: objectValue(this.errorPrototype) });
     readonly ArrayBuffer = this.functionValue(this.arrayBufferConstructor.bind(this), { name: 'ArrayBuffer' });
-    readonly Float64Array = this.functionValue(this.float64ArrayConstructor.bind(this), { name: 'Float64Array', functionPrototype: this.typedArrayPrototype });
-    readonly Float32Array = this.functionValue(this.float32ArrayConstructor.bind(this), { name: 'Float32Array', functionPrototype: this.typedArrayPrototype });
-    readonly Int32Array = this.functionValue(this.int32ArrayConstructor.bind(this), { name: 'Int32Array', functionPrototype: this.typedArrayPrototype });
-    readonly Int16Array = this.functionValue(this.int16ArrayConstructor.bind(this), { name: 'Int16Array', functionPrototype: this.typedArrayPrototype });
-    readonly Int8Array = this.functionValue(this.int8ArrayConstructor.bind(this), { name: 'Int8Array', functionPrototype: this.typedArrayPrototype });
-    readonly Uint32Array = this.functionValue(this.uint32ArrayConstructor.bind(this), { name: 'Uint32Array', functionPrototype: this.typedArrayPrototype });
-    readonly Uint16Array = this.functionValue(this.uint16ArrayConstructor.bind(this), { name: 'Uint16Array', functionPrototype: this.typedArrayPrototype });
-    readonly Uint8Array = this.functionValue(this.uint8ArrayConstructor.bind(this), { name: 'Uint8Array', functionPrototype: this.typedArrayPrototype });
-    readonly Uint8ClampedArray = this.functionValue(this.uint8ClampedArrayConstructor.bind(this), { name: 'Uint8ClampedArray', functionPrototype: this.typedArrayPrototype });
+    readonly Float64Array = this.functionValue(this.float64ArrayConstructor.bind(this), { name: 'Float64Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
+    readonly Float32Array = this.functionValue(this.float32ArrayConstructor.bind(this), { name: 'Float32Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
+    readonly Int32Array = this.functionValue(this.int32ArrayConstructor.bind(this), { name: 'Int32Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
+    readonly Int16Array = this.functionValue(this.int16ArrayConstructor.bind(this), { name: 'Int16Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
+    readonly Int8Array = this.functionValue(this.int8ArrayConstructor.bind(this), { name: 'Int8Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
+    readonly Uint32Array = this.functionValue(this.uint32ArrayConstructor.bind(this), { name: 'Uint32Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
+    readonly Uint16Array = this.functionValue(this.uint16ArrayConstructor.bind(this), { name: 'Uint16Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
+    readonly Uint8Array = this.functionValue(this.uint8ArrayConstructor.bind(this), { name: 'Uint8Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
+    readonly Uint8ClampedArray = this.functionValue(this.uint8ClampedArrayConstructor.bind(this), { name: 'Uint8ClampedArray', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
     readonly Number = this.functionValue(this.numberConstructor.bind(this), { name: 'Number' });
     readonly Boolean = this.functionValue(this.booleanConstructor.bind(this), { name: 'Boolean' });
     readonly Symbol = this.functionValue(this.symbolConstructor.bind(this), { name: 'Symbol' });
@@ -754,7 +755,7 @@ export class Engine {
         }
     }
     
-    isFunction(value: Value): value is ObjectValue & false {
+    isFunction(value: Value): value is ObjectValue {
         return value.type === 'object' && this.isPrototypeOf(this.functionPrototype, value);
     }
 
@@ -785,12 +786,8 @@ export class Engine {
     }
 
     executeFunction(callee: Value, thisArg: Value, args: Value[], context: Context, newTarget: Value = undefinedValue): Value {
-        if (callee.type !== 'object') {
-            throw this.newReferenceError('call is unsupported for ' + callee.type, context);
-        }
-    
-        if (callee.prototype !== this.Function.prototype) {
-            throw new NotImplementedError('cannot call non-function', context);
+        if (!this.isFunction(callee)) {
+            throw this.newReferenceError('cannot call non-function ' + callee.type, context);
         }
     
         const internalFields = callee.internalFields as FunctionInternalFields;
@@ -821,7 +818,7 @@ export class Engine {
             throw new NotImplementedError('new is unsupported for ' + constructor.type, context);
         }
     
-        if (constructor.prototype !== this.Function.prototype) {
+        if (!this.isFunction(constructor)) {
             throw this.newTypeError('cannot use new for non-function', context);
         }
 
@@ -829,7 +826,7 @@ export class Engine {
             throw this.newTypeError('new is unsupported for target ' + newTargetConstructor.type, context);
         }
     
-        if (newTargetConstructor.prototype !== this.Function.prototype) {
+        if (!this.isFunction(newTargetConstructor)) {
             throw this.newTypeError('cannot use new for non-function target', context);
         }
     
