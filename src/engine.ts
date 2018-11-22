@@ -248,7 +248,7 @@ export class Engine {
             const array = this.toArray(thisArg, context);
 
             const start = values.length >= 1 ? this.toNumber(values[0], context) : undefined;
-            const end = values.length >= 2 ? this.toNumber(values[0], context) : undefined;
+            const end = values.length >= 2 ? this.toNumber(values[1], context) : undefined;
 
             return this.constructArray(array.slice(start, end), context);
         }));
@@ -308,7 +308,7 @@ export class Engine {
                 const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
                 if (wrappedValue.type === 'string') {
                     const start = args.length >= 1 ? this.toNumber(args[0], context) : undefined;
-                    const end = args.length >= 2 ? this.toNumber(args[0], context) : undefined;
+                    const end = args.length >= 2 ? this.toNumber(args[1], context) : undefined;
 
                     return stringValue(wrappedValue.value.slice(start, end));
                 }
@@ -339,8 +339,34 @@ export class Engine {
             } as ObjectPropertyDescriptor;
         };
         
-        this.defineProperty(this.typedArrayPrototype, 'fill', this.objectMethod((thisArg, args, context) => undefinedValue));
-        this.defineProperty(this.typedArrayPrototype, 'forEach', this.objectMethod((thisArg, args, context) => undefinedValue));
+        this.defineProperty(this.typedArrayPrototype, 'fill', this.objectMethod((thisArg, args, context) => {
+            if (thisArg.internalFields.hasOwnProperty('typedArray')) {
+                const wrappedValue = thisArg.internalFields['typedArray'];
+                return numberValue(wrappedValue.fill(this.toNumber(args[0], context)));
+            }
+
+            throw this.newTypeError('TypedArray[index] failed', context);
+        }));
+
+        (this.typedArrayPrototype.internalFields as HasGetPropertyDescriptor).getPropertyDescriptor = (object, propertyName, context) => {
+            const index = Number(propertyName);
+
+            if (isNaN(Number(propertyName)) || index < 0) {
+                return this.getDefinedPropertyDescriptor(object, propertyName, context);
+            }
+
+            return {
+                descriptorType: 'accessor',
+                getter: this.objectMethod((thisArg, args, context) => {
+                    if (thisArg.internalFields.hasOwnProperty('typedArray')) {
+                        const wrappedValue = thisArg.internalFields['typedArray'];
+                        return numberValue(wrappedValue[index]);
+                    }
+    
+                    throw this.newTypeError('TypedArray[index] failed', context);
+                })
+            } as ObjectPropertyDescriptor;
+        };
 
         const globals = {
             Object: this.Object,
@@ -558,43 +584,44 @@ export class Engine {
         return undefinedValue;
     }
 
-    typedArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return undefinedValue;
+    float64ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
+        return this.typedArrayConstructor(Float64Array, thisArg, args, context, newTarget);
     }
 
-    float64ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return undefinedValue;
+    float32ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
+        return this.typedArrayConstructor(Float32Array, thisArg, args, context, newTarget);
     }
 
-    float32ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return undefinedValue;
+    int32ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
+        return this.typedArrayConstructor(Int32Array, thisArg, args, context, newTarget);
     }
 
-    int32ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return undefinedValue;
+    int16ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
+        return this.typedArrayConstructor(Int16Array, thisArg, args, context, newTarget);
     }
 
-    int16ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return undefinedValue;
+    int8ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
+        return this.typedArrayConstructor(Int8Array, thisArg, args, context, newTarget);
     }
 
-    int8ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return undefinedValue;
+    uint32ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
+        return this.typedArrayConstructor(Uint32Array, thisArg, args, context, newTarget);
     }
 
-    uint32ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return undefinedValue;
+    uint16ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
+        return this.typedArrayConstructor(Uint16Array, thisArg, args, context, newTarget);
     }
 
-    uint16ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return undefinedValue;
+    uint8ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
+        return this.typedArrayConstructor(Uint8Array, thisArg, args, context, newTarget);
     }
 
-    uint8ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return undefinedValue;
+    uint8ClampedArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
+        return this.typedArrayConstructor(Uint8ClampedArray, thisArg, args, context, newTarget);
     }
 
-    uint8ClampedArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
+    typedArrayConstructor(constructor: new (items: Iterable<number>) => any, thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
+        thisArg.internalFields['typedArray'] = new constructor(this.toArray(args[0] as ObjectValue, context).map(value => this.toNumber(value, context)));
         return undefinedValue;
     }
 
