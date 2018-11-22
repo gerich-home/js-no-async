@@ -593,10 +593,13 @@ export class Scope {
 
     evaluateMemberExpression(expression: MemberExpression): Value {
         const object = this.evaluateExpression(expression.object);
+        const propertyName = this.evaluatePropertyName(expression);
+
+        if (object.type === 'null' || object.type === 'undefined') {
+            throw this.engine.newTypeError(`Cannot read property '${propertyName}' of ${object.type}`, this.createContext(expression));
+        }
         
         const convertedObject = this.engine.toObject(object, this.createContext(expression));
-
-        const propertyName = this.evaluatePropertyName(expression);
         
         return this.engine.readProperty(convertedObject, propertyName, this.createContext(expression));
     }

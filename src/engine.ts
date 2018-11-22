@@ -4,7 +4,7 @@ import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, string
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
 import { Scope } from './scope';
-import { AccessorObjectPropertyDescriptor, Context, FunctionInternalFields, FunctionOptions, GeneralFunctionInvoke, HasGetPropertyDescriptor, MandatoryObjectPropertyDescriptorFields, ObjectMethodInvoke, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value, ValueObjectPropertyDescriptor } from './types';
+import { AccessorObjectPropertyDescriptor, Context, FunctionInternalFields, FunctionOptions, GeneralFunctionInvoke, HasGetPropertyDescriptor, MandatoryObjectPropertyDescriptorFields, NullValue, ObjectMethodInvoke, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value, ValueObjectPropertyDescriptor } from './types';
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
@@ -510,7 +510,15 @@ export class Engine {
             return objectValue(this.rootPrototype);
         }
 
-        return this.toObject(args[0], context);
+        const value = args[0];
+
+        switch(value.type) {
+            case 'null':
+            case 'undefined':
+                return objectValue(this.rootPrototype);
+            default:
+                return this.toObject(value, context);
+        }
     }
 
     arrayConstructor(thisArg: ObjectValue, args: Value[]): UndefinedValue {
@@ -640,6 +648,10 @@ export class Engine {
 
     objectMethod(invoke: ObjectMethodInvoke, options?: FunctionOptions): ObjectValue {
         return this.functionValue((thisArg, argValues, context, newTarget) => {
+            if (thisArg.type === 'null' || thisArg.type === 'undefined') {
+                throw new NotImplementedError('cannot call object method with null or undefined', context);
+            }
+
             const thisAsObject = this.toObject(thisArg, context);
 
             return invoke(thisAsObject, argValues, context, newTarget);
@@ -739,11 +751,8 @@ export class Engine {
         }
     }
 
-    toObject(value: Value, context: Context): ObjectValue {
+    toObject(value: Exclude<Value, NullValue | UndefinedValue>, context: Context): ObjectValue {
         switch(value.type) {
-            case 'null':
-            case 'undefined':
-                return objectValue(this.rootPrototype);
             case 'number':
                 return this.constructObject(this.Number, [value], context);
             case 'boolean':
