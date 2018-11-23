@@ -4,7 +4,7 @@ import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, string
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
 import { Scope } from './scope';
-import { AccessorObjectPropertyDescriptor, Context, FunctionInternalFields, FunctionOptions, GeneralFunctionInvoke, HasGetPropertyDescriptor, MandatoryObjectPropertyDescriptorFields, NullValue, ObjectMethodInvoke, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value, ValueObjectPropertyDescriptor } from './types';
+import { AccessorObjectPropertyDescriptor, ClassDefinition, Context, FunctionInternalFields, FunctionOptions, GeneralFunctionInvoke, HasGetPropertyDescriptor, MandatoryObjectPropertyDescriptorFields, NullValue, ObjectDefinition, ObjectMethodInvoke, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value, ValueObjectPropertyDescriptor } from './types';
 
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
@@ -18,8 +18,98 @@ export class Engine {
     readonly Object = this.functionValue(this.objectConstructor.bind(this), { name: 'Object', prototype: this.rootPrototype});
     readonly Function = this.functionValue(this.functionConstructor.bind(this), { name: 'Function', prototype: this.functionPrototype });
     readonly Array = this.functionValue(this.arrayConstructor.bind(this), { name: 'Array' });
-    readonly String = this.functionValue(this.stringConstructor.bind(this), { name: 'String' });
-    readonly Date = this.functionValue(this.dateConstructor.bind(this), { name: 'Date' });
+    readonly String = this.createClass({
+        name: 'String',
+        constructor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
+            const value = stringValue(args.length === 0 ? '' : this.toString(args[0], context));
+    
+            if (newTarget === undefinedValue) {
+                return value;
+            } else {
+                thisArg.internalFields['wrappedValue'] = value;
+                return undefinedValue;
+            }
+        },
+        methods: {
+            ['valueOf' as any]: (thisArg, args, context) => {
+                if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
+                    const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
+                    if (wrappedValue.type === 'string') {
+                        return wrappedValue;
+                    }
+                }
+
+                throw this.newTypeError('String.valueOf failed', context);
+            },
+            slice:(thisArg, args, context) => {
+                if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
+                    const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
+                    if (wrappedValue.type === 'string') {
+                        const start = args.length >= 1 ? this.toNumber(args[0], context) : undefined;
+                        const end = args.length >= 2 ? this.toNumber(args[1], context) : undefined;
+
+                        return stringValue(wrappedValue.value.slice(start, end));
+                    }
+                }
+
+                throw this.newTypeError('String.slice failed', context);
+            }
+        },
+        properties: {
+            length: {
+                descriptorType: 'accessor',
+                getter: this.objectMethod((thisArg, args, context) => {
+                    if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
+                        const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
+                        if (wrappedValue.type === 'string') {
+                            return numberValue(wrappedValue.value.length);
+                        }
+                    }
+
+                    throw this.newTypeError('String.length failed', context);
+                }),
+                setter: undefinedValue
+            } as ObjectPropertyDescriptor
+        },
+        getOwnPropertyDescriptor: (object, propertyName) => {
+            const index = Number(propertyName);
+
+            if (isNaN(Number(propertyName)) || index < 0) {
+                return null;
+            }
+
+            return {
+                descriptorType: 'accessor',
+                getter: this.objectMethod((thisArg, args, context) => {
+                    if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
+                        const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
+                        if (wrappedValue.type === 'string') {
+                            return stringValue(wrappedValue.value[index]);
+                        }
+                    }
+    
+                    throw this.newTypeError('String[index] failed', context);
+                })
+            } as ObjectPropertyDescriptor;
+        }
+    });
+
+    readonly Date = this.createClass({
+        name: 'Date',
+        constructor: (thisArg: ObjectValue, args: Value[], context: Context) => {
+            thisArg.internalFields['date'] = new (Date as any)(...args.slice(0, 7).map(arg => this.toNumber(arg, context)));
+            return undefinedValue;
+        },
+        methods: {
+            getTimezoneOffset: thisArg => {
+                return numberValue(thisArg.internalFields['date'].getTimezoneOffset());
+            },
+            ['valueOf' as any]: thisArg => {
+                return numberValue(thisArg.internalFields['date'].valueOf());
+            }
+        }
+    });
+
     readonly RegExp = this.functionValue(this.regExpConstructor.bind(this), { name: 'RegExp' });
     readonly Promise = this.functionValue(this.promiseConstructor.bind(this), { name: 'Promise' });
     readonly Error = this.functionValue(this.errorConstructor.bind(this), { name: 'Error', prototype: this.errorPrototype });
@@ -52,8 +142,64 @@ export class Engine {
     readonly globalVars = this.newObject();
     readonly globalScope = new Scope(this, null, null, null, this.globalVars, this.globalVars);
 
+    createClass(classDefinition: ClassDefinition): ObjectValue {
+        const prototype = this.newObject(classDefinition);
+
+        const result = this.functionValue(this.objectMethodFunction(classDefinition.constructor || (() => undefinedValue)), {
+            name: classDefinition.name,
+            prototype
+        });
+
+        const staticMethods = classDefinition.staticMethods;
+        if (staticMethods) {
+            Object.keys(staticMethods)
+                .forEach(methodName => {
+                    const m = staticMethods[methodName];
+                    
+                    const methodBody = m instanceof Function ?
+                        this.objectMethodFunction(m) :
+                        m.isMethod ?
+                            this.objectMethodFunction(m.body) :
+                            m.body;
+
+                    this.defineProperty(result, methodName, this.functionValue(methodBody, {
+                        name: methodName
+                    }));
+                });
+        }
+
+        const staticProperties = classDefinition.staticProperties;
+        if (staticProperties) {
+            Object.keys(staticProperties)
+                .forEach(propertyName => {
+                    this.defineProperty(result, propertyName, staticProperties[propertyName]);
+                });
+        }
+
+        return result;
+    }
+
     constructor() {
-        this.defineProperty(this.rootPrototype, 'toString', this.functionValue(() => stringValue('[object Object]')));
+        this.defineProperty(this.rootPrototype, 'toString', this.functionValue((thisArg) => {
+            switch(thisArg.type) {
+                case 'null':
+                    return stringValue('[object Null]');
+                case 'undefined':
+                    return stringValue('[object Undefined]');
+                case 'boolean':
+                    return stringValue('[object Boolean]');
+                case 'number':
+                    return stringValue('[object Number]');
+                case 'string':
+                    return stringValue('[object String]');
+                case 'object':
+                    if (this.isFunction(thisArg)) {
+                        return stringValue('[object Function]');
+                    } else {
+                        return stringValue('[object Object]');
+                    }
+            }
+        }));
         this.defineProperty(this.rootPrototype, 'valueOf', this.functionValue(thisArg => thisArg));
         this.defineProperty(this.rootPrototype, 'constructor', this.Object);
         this.defineProperty(this.rootPrototype, 'hasOwnProperty', this.objectMethod((thisArg, args, context) => booleanValue(thisArg.ownProperties.has(this.toString(args[0], context)))));
@@ -210,16 +356,6 @@ export class Engine {
         this.defineProperty(regExpPrototype, 'test', this.objectMethod((thisArg, args, context) => {
             return booleanValue(thisArg.internalFields['regex'].test(this.toString(args[0], context)));
         }));
-
-        const datePrototype = this.readProperty(this.Date, 'prototype', null) as ObjectValue;
-        
-        this.defineProperty(datePrototype, 'getTimezoneOffset', this.objectMethod((thisArg, args, context) => {
-            return numberValue(thisArg.internalFields['date'].getTimezoneOffset());
-        }));
-        
-        this.defineProperty(datePrototype, 'valueOf', this.objectMethod((thisArg, args, context) => {
-            return numberValue(thisArg.internalFields['date'].valueOf());
-        }));
         
         const arrayPrototype = this.readProperty(this.Array, 'prototype', null) as ObjectValue;
 
@@ -275,69 +411,6 @@ export class Engine {
 
             throw this.newTypeError('Number.valueOf failed', context);
         }));
-
-        const stringPrototype = (this.readProperty(this.String, 'prototype', null) as ObjectValue);
-
-        this.defineProperty(stringPrototype, 'valueOf', this.objectMethod((thisArg, args, context) => {
-            if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
-                const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
-                if (wrappedValue.type === 'string') {
-                    return wrappedValue;
-                }
-            }
-
-            throw this.newTypeError('String.valueOf failed', context);
-        }));
-        
-        this.defineProperty(stringPrototype, 'length', {
-            descriptorType: 'accessor',
-            getter: this.objectMethod((thisArg, args, context) => {
-                if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
-                    const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
-                    if (wrappedValue.type === 'string') {
-                        return numberValue(wrappedValue.value.length);
-                    }
-                }
-
-                throw this.newTypeError('String.length failed', context);
-            })
-        });
-
-        this.defineProperty(stringPrototype, 'slice', this.objectMethod((thisArg, args, context) => {
-            if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
-                const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
-                if (wrappedValue.type === 'string') {
-                    const start = args.length >= 1 ? this.toNumber(args[0], context) : undefined;
-                    const end = args.length >= 2 ? this.toNumber(args[1], context) : undefined;
-
-                    return stringValue(wrappedValue.value.slice(start, end));
-                }
-            }
-
-            throw this.newTypeError('String.slice failed', context);
-        }));
-        
-        (stringPrototype.internalFields as HasGetPropertyDescriptor).getOwnPropertyDescriptor = (object, propertyName) => {
-            const index = Number(propertyName);
-
-            if (isNaN(Number(propertyName)) || index < 0) {
-                return null;
-            }
-
-            return {
-                descriptorType: 'accessor',
-                getter: this.objectMethod((thisArg, args, context) => {
-                    if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
-                        const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
-                        if (wrappedValue.type === 'string') {
-                            return stringValue(wrappedValue.value[index]);
-                        }
-                    }
-    
-                    throw this.newTypeError('String[index] failed', context);
-                })
-            } as ObjectPropertyDescriptor;
-        };
         
         this.defineProperty(this.typedArrayPrototype, 'fill', this.objectMethod((thisArg, args, context) => {
             if (thisArg.internalFields.hasOwnProperty('typedArray')) {
@@ -565,22 +638,6 @@ export class Engine {
         return undefinedValue;
     }
 
-    stringConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
-        const value = stringValue(args.length === 0 ? '' : this.toString(args[0], context));
-
-        if (newTarget === undefinedValue) {
-            return value;
-        } else {
-            thisArg.internalFields['wrappedValue'] = value;
-            return undefinedValue;
-        }
-    }
-
-    dateConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        thisArg.internalFields['date'] = new (Date as any)(...args.slice(0, 7).map(arg => this.toNumber(arg, context)));
-        return undefinedValue;
-    }
-
     regExpConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
         thisArg.internalFields['regex'] = new RegExp(this.toString(args[0], context), this.toString(args[1], context));
         return undefinedValue;
@@ -684,7 +741,11 @@ export class Engine {
     }
 
     objectMethod(invoke: ObjectMethodInvoke, options?: FunctionOptions): ObjectValue {
-        return this.functionValue((thisArg, argValues, context, newTarget) => {
+        return this.functionValue(this.objectMethodFunction(invoke), options);
+    }
+
+    objectMethodFunction(invoke: ObjectMethodInvoke): GeneralFunctionInvoke {
+        return (thisArg, argValues, context, newTarget) => {
             if (thisArg.type === 'null' || thisArg.type === 'undefined') {
                 throw new NotImplementedError('cannot call object method with null or undefined', context);
             }
@@ -692,7 +753,7 @@ export class Engine {
             const thisAsObject = this.toObject(thisArg, context);
 
             return invoke(thisAsObject, argValues, context, newTarget);
-        }, options);
+        }
     }
 
     functionValue(invoke: GeneralFunctionInvoke, options?: FunctionOptions): ObjectValue {
@@ -851,8 +912,45 @@ export class Engine {
         return this.executeFunction(method, value, args, context);
     }
 
-    newObject(): ObjectValue {
-        return objectValue(this.rootPrototype);
+    newObject(objectDefinition?: ObjectDefinition): ObjectValue {
+        const result = objectValue(this.rootPrototype);
+        
+        if (!objectDefinition) {
+            return result;
+        }
+
+        const methods = objectDefinition.methods;
+        if (methods) {
+            Object.keys(methods)
+                .forEach(methodName => {
+                    const m = methods[methodName];
+                    
+                    const methodBody = m instanceof Function ?
+                        this.objectMethodFunction(m) :
+                        m.isMethod ?
+                            this.objectMethodFunction(m.body) :
+                            m.body;
+
+                    this.defineProperty(result, methodName, this.functionValue(methodBody, {
+                        name: methodName
+                    }));
+                });
+        }
+
+        const properties = objectDefinition.properties;
+        if (properties) {
+            Object.keys(properties)
+                .forEach(propertyName => {
+                    this.defineProperty(result, propertyName, properties[propertyName]);
+                });
+        }
+
+        const getOwnPropertyDescriptor = objectDefinition.getOwnPropertyDescriptor;
+        if (getOwnPropertyDescriptor) {
+            (result.internalFields as HasGetPropertyDescriptor).getOwnPropertyDescriptor = getOwnPropertyDescriptor;
+        }
+        
+        return result;
     }
 
     constructArray(elements: Value[], context: Context): ObjectValue {

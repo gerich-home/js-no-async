@@ -68,8 +68,10 @@ export type FunctionInternalFields = {
     isConstructor: boolean;
 };
 
+export type GetOwnPropertyDescriptorMethod = (object: ObjectValue, propertyName: string, context: Context) => ObjectPropertyDescriptor | null;
+
 export type HasGetPropertyDescriptor = {
-    getOwnPropertyDescriptor(object: ObjectValue, propertyName: string, context: Context): ObjectPropertyDescriptor | null;
+    getOwnPropertyDescriptor: GetOwnPropertyDescriptorMethod;
 };
 
 export type Block = {
@@ -98,4 +100,29 @@ export type FunctionOptions = {
     functionPrototype?: ObjectValue;
     prototype?: ObjectValue;
     isConstructor?: boolean;
+};
+
+export type MethodDefinition = ObjectMethodInvoke |
+    { isMethod: true; body: ObjectMethodInvoke; } |
+    { isMethod: false; body: GeneralFunctionInvoke; };
+
+export type ObjectDefinition = {
+    methods?: {
+        [key: string]: MethodDefinition;
+    };
+    properties?: {
+        [key: string]: ObjectPropertyDescriptor;
+    };
+    getOwnPropertyDescriptor?: GetOwnPropertyDescriptorMethod;
+};
+
+export type ClassDefinition = ObjectDefinition & {
+    name?: string;
+    constructor?: ObjectMethodInvoke;
+    staticMethods?: {
+        [key: string]: MethodDefinition;
+    };
+    staticProperties?: {
+        [key: string]: ObjectPropertyDescriptor;
+    };
 };
