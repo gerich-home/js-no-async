@@ -69,7 +69,7 @@ export type FunctionInternalFields = {
 };
 
 export type HasGetPropertyDescriptor = {
-    getPropertyDescriptor(object: ObjectValue, propertyName: string, context: Context): ObjectPropertyDescriptor | null;
+    getOwnPropertyDescriptor(object: ObjectValue, propertyName: string, context: Context): ObjectPropertyDescriptor | null;
 };
 
 export type Block = {

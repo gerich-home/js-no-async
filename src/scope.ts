@@ -3,7 +3,7 @@ import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
-import { BooleanValue, CallStackEntry, Context, FunctionNode, NumberValue, ObjectValue, StringValue, Value } from './types';
+import { BooleanValue, CallStackEntry, Context, FunctionNode, NumberValue, ObjectPropertyDescriptor, ObjectValue, StringValue, Value } from './types';
 
 function isFunctionNode(node: Node): boolean {
     const type = node.type;
@@ -665,18 +665,37 @@ export class Scope {
     }
 
     evaluateIdentifier(expression: Identifier): Value {
-        var context = this.createContext(expression);
-        const variable = this.engine.getPropertyDescriptor(this.variables, expression.name, context);
+        const context = this.createContext(expression);
         
-        if (variable !== null) {
-            return this.engine.readPropertyDescriptorValue(this.variables, variable, context);
+        const result = this.getIdentifier(expression.name, context);
+
+        if (result === null) {
+            return undefinedValue;
         }
 
+        const [containingScope, identifier] = result;
+
+        return this.engine.readPropertyDescriptorValue(containingScope.variables, identifier, context);
+    }
+
+    getIdentifier(identifierName: string, context: Context): [Scope, ObjectPropertyDescriptor] | null {
         if (this.parent !== null) {
-            return this.parent.evaluateIdentifier(expression);
+            const variable = this.engine.getOwnPropertyDescriptor(this.variables, identifierName, context);
+            
+            if (variable !== null) {
+                return [this, variable];
+            }
+
+            return this.parent.getIdentifier(identifierName, context);
+        }
+        
+        const variable = this.engine.getPropertyDescriptor(this.variables, identifierName, context);
+            
+        if (variable !== null) {
+            return [this, variable];
         }
 
-        return undefinedValue;
+        return null;
     }
 
     evaluateRegExpLiteral(expression: RegExpLiteral): Value {

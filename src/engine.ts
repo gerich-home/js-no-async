@@ -317,11 +317,11 @@ export class Engine {
             throw this.newTypeError('String.slice failed', context);
         }));
         
-        (stringPrototype.internalFields as HasGetPropertyDescriptor).getPropertyDescriptor = (object, propertyName, context) => {
+        (stringPrototype.internalFields as HasGetPropertyDescriptor).getOwnPropertyDescriptor = (object, propertyName) => {
             const index = Number(propertyName);
 
             if (isNaN(Number(propertyName)) || index < 0) {
-                return this.getDefinedPropertyDescriptor(object, propertyName, context);
+                return null;
             }
 
             return {
@@ -348,11 +348,11 @@ export class Engine {
             throw this.newTypeError('TypedArray[index] failed', context);
         }));
 
-        (this.typedArrayPrototype.internalFields as HasGetPropertyDescriptor).getPropertyDescriptor = (object, propertyName, context) => {
+        (this.typedArrayPrototype.internalFields as HasGetPropertyDescriptor).getOwnPropertyDescriptor = (object, propertyName) => {
             const index = Number(propertyName);
 
             if (isNaN(Number(propertyName)) || index < 0) {
-                return this.getDefinedPropertyDescriptor(object, propertyName, context);
+                return null;
             }
 
             return {
@@ -470,18 +470,28 @@ export class Engine {
         }
     }
 
-    getPropertyDescriptor(object: ObjectValue, propertyName: string, context: Context): ObjectPropertyDescriptor | null {
-        if('getPropertyDescriptor' in object.internalFields) {
-            return (object.internalFields as HasGetPropertyDescriptor).getPropertyDescriptor(object, propertyName, context);
+    getOwnPropertyDescriptor(object: ObjectValue, propertyName: string, context: Context): ObjectPropertyDescriptor | null {
+        if ('getOwnPropertyDescriptor' in object.internalFields) {
+            const calculatedProperty = (object.internalFields as HasGetPropertyDescriptor).getOwnPropertyDescriptor(object, propertyName, context);
+
+            if(calculatedProperty !== null) {
+                return calculatedProperty;
+            }
         }
 
-        return this.getDefinedPropertyDescriptor(object, propertyName, context);
-    }
-
-    getDefinedPropertyDescriptor(object: ObjectValue, propertyName: string, context: Context): ObjectPropertyDescriptor | null {
         const property = object.ownProperties.get(propertyName);
         
         if (property !== undefined) {
+            return property;
+        }
+
+        return null;
+    }
+
+    getPropertyDescriptor(object: ObjectValue, propertyName: string, context: Context): ObjectPropertyDescriptor | null {
+        const property = this.getOwnPropertyDescriptor(object, propertyName, context);
+        
+        if (property !== null) {
             return property;
         }
 
