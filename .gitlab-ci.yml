@@ -54,9 +54,10 @@ test_intl402:
   variables:
     TESTS_GLOB: "test262/test/intl402/**/*.js"
 
-test_language:
+test_language_arguments_object:
   stage: test
   script:
    - npm run start
   variables:
-    TESTS_GLOB: "test262/test/language/**/*.js"
+    TESTS_GLOB: "test262/test/language/arguments-object/**/*.js"
+
