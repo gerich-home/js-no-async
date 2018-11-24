@@ -3,10 +3,6 @@ image: node:latest
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
-cache:
-  paths:
-  - node_modules/
-
 stages:
   - build
   - test
@@ -16,6 +12,9 @@ build:
   script:
    - npm install
    - npx tsc
+  cache:
+    paths:
+     - node_modules/
   artifacts:
     untracked: true
     when: on_success
