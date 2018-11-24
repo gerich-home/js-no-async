@@ -99,4 +99,8 @@ async function run() {
 
     console.log();
     console.log(`Test run complete: ${counts.passed}/${counts.passed + counts.failed} passed`);
+    
+    if (counts.failed > 0) {
+        process.exit(1);
+    }
 }
