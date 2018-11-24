@@ -61,3 +61,25 @@ test_language_arguments_object:
   variables:
     TESTS_GLOB: "test262/test/language/arguments-object/**/*.js"
 
+test_language_asi:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/asi/**/*.js"
+
+test_language_block_scope:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/block-scope/**/*.js"
+
+test_language_comments:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/comments/**/*.js"
+
+
