@@ -83,6 +83,8 @@ export class Scope {
                 return this.evaluateVariableDeclaration(statement);
             case 'FunctionDeclaration':
                 return null;
+            case 'EmptyStatement':
+                return null;
             case 'BreakStatement':
                 return 'break';
             case 'ExpressionStatement':
