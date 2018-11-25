@@ -54,7 +54,7 @@ test_intl402:
   variables:
     TESTS_GLOB: "test262/test/intl402/**/*.js"
 
-test_language_arguments_object:
+test_language_arguments-object:
   stage: test
   script:
    - npm run start
@@ -68,7 +68,7 @@ test_language_asi:
   variables:
     TESTS_GLOB: "test262/test/language/asi/**/*.js"
 
-test_language_block_scope:
+test_language_block-scope:
   stage: test
   script:
    - npm run start
@@ -82,4 +82,37 @@ test_language_comments:
   variables:
     TESTS_GLOB: "test262/test/language/comments/**/*.js"
 
+test_language_computed-property-names:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/computed-property-names/**/*.js"
 
+test_language_destructuring_binding:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/destructuring/binding/**/*.js"
+
+test_language_directive-prologue:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/directive-prologue/**/*.js"
+
+test_language_eval-code:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/eval-code/**/*.js"
+
+test_language_export:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/export/**/*.js"
