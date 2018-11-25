@@ -116,3 +116,39 @@ test_language_export:
    - npm run start
   variables:
     TESTS_GLOB: "test262/test/language/export/**/*.js"
+
+test_language_expressions:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/expressions/**/*.js"
+
+test_language_function-code:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/function-code/**/*.js"
+
+test_language_future-reserved-words:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/future-reserved-words/**/*.js"
+
+test_language_global-code:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/global-code/**/*.js"
+
+test_language_identifier-resolution:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/identifier-resolution/**/*.js"
+
