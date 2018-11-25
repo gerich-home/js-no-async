@@ -152,3 +152,16 @@ test_language_identifier-resolution:
   variables:
     TESTS_GLOB: "test262/test/language/identifier-resolution/**/*.js"
 
+test_language_identifiers:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/identifiers/**/*.js"
+
+test_language_import:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/import/**/*.js"
