@@ -602,7 +602,8 @@ export class Engine {
 
         const constructor = this.functionValue(constructorFunction, {
             name: classDefinition.name,
-            proto
+            proto,
+            functionProto: classDefinition.ctorProto
         });
 
         const staticMethods = classDefinition.staticMethods;
