@@ -165,3 +165,38 @@ test_language_import:
    - npm run start
   variables:
     TESTS_GLOB: "test262/test/language/import/**/*.js"
+
+test_language_keywords:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/keywords/**/*.js"
+
+test_language_line-terminators:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/line-terminators/**/*.js"
+
+test_language_literals:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/literals/**/*.js"
+
+test_language_module-code:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/module-code/**/*.js"
+
+test_language_punctuators:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/punctuators/**/*.js"
