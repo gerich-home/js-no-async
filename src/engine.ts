@@ -285,8 +285,31 @@ export class Engine {
     readonly Uint16Array = this.functionValue(this.uint16ArrayConstructor.bind(this), { name: 'Uint16Array', proto: objectValue(this.typedArrayProto), functionProto: this.typedArrayFunctionProto });
     readonly Uint8Array = this.functionValue(this.uint8ArrayConstructor.bind(this), { name: 'Uint8Array', proto: objectValue(this.typedArrayProto), functionProto: this.typedArrayFunctionProto });
     readonly Uint8ClampedArray = this.functionValue(this.uint8ClampedArrayConstructor.bind(this), { name: 'Uint8ClampedArray', proto: objectValue(this.typedArrayProto), functionProto: this.typedArrayFunctionProto });
-    readonly Reflect = this.newObject();
-    readonly Math = this.newObject();
+    
+    readonly Reflect = this.newObject({
+        methods: {
+            construct: (thisArg, args, context) => {
+                const constructorArgs = this.toArray(args[1] as ObjectValue, context);
+                
+                return this.constructObject(args[0], constructorArgs, context, args.length < 3 ? args[0] : args[2]);
+            }
+        }
+    });
+
+    readonly Math = this.newObject({
+        methods: {
+            pow: {
+                isMethod: false,
+                body: (thisArg, args, context) => {
+                    const a = this.toNumber(args[0], context);
+                    const b = this.toNumber(args[1], context);
+                    
+                    return numberValue(Math.pow(a, b));
+                }
+            }
+        }
+    });
+
     readonly log = this.functionValue((thisArg, values, context) => {
         console.log(...values.map(value => this.toString(value, context)));
         return undefinedValue;
@@ -496,19 +519,6 @@ export class Engine {
             }
 
             return object.proto;
-        }));
-        
-        this.defineProperty(this.Reflect, 'construct', this.functionValue((thisArg, args, context) => {
-            const constructorArgs = this.toArray(args[1] as ObjectValue, context);
-            
-            return this.constructObject(args[0], constructorArgs, context, args.length < 3 ? args[0] : args[2]);
-        }));
-        
-        this.defineProperty(this.Math, 'pow', this.functionValue((thisArg, args, context) => {
-            const a = this.toNumber(args[0], context);
-            const b = this.toNumber(args[1], context);
-            
-            return numberValue(Math.pow(a, b));
         }));
 
         this.defineProperty(this.errorProto, 'toString', this.objectMethod((thisArg, args, context) => this.readProperty(thisArg, 'message', context)));
