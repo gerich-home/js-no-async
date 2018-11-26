@@ -512,65 +512,6 @@ export class Engine {
     readonly globalVars = this.newObject();
     readonly globalScope = new Scope(this, null, null, null, this.globalVars, this.globalVars);
 
-    createClassProto(classDefinition: ClassDefinition): ObjectValue {
-        const classProtoDefinition = classDefinition.baseClass ? {
-            ...classDefinition,
-            proto: classDefinition.baseClass && classDefinition.baseClass.proto
-        }: classDefinition;
-
-        const proto = classDefinition.proto || this.newObject(classProtoDefinition);
-        this.fillObject(proto, classProtoDefinition);
-
-        return proto;
-    }
-
-    createClass(classDefinition: ClassDefinition): Class {
-        const proto = this.createClassProto(classDefinition);
-
-        const constructorFunction = classDefinition.ctor ?
-            this.objectMethodFunction(classDefinition.ctor) :
-            classDefinition.baseClass ?
-                (classDefinition.baseClass.constructor.internalFields as FunctionInternalFields).invoke :
-                this.objectMethodFunction(() => undefinedValue);
-
-        const constructor = this.functionValue(constructorFunction, {
-            name: classDefinition.name,
-            proto
-        });
-
-        const staticMethods = classDefinition.staticMethods;
-
-        if (staticMethods) {
-            Object.keys(staticMethods)
-                .forEach(methodName => {
-                    const m = staticMethods[methodName];
-                    
-                    const methodBody = m instanceof Function ?
-                        this.objectMethodFunction(m) :
-                        m.isMethod ?
-                            this.objectMethodFunction(m.body) :
-                            m.body;
-
-                    this.defineProperty(constructor, methodName, this.functionValue(methodBody, {
-                        name: methodName
-                    }));
-                });
-        }
-
-        const staticProperties = classDefinition.staticProperties;
-        if (staticProperties) {
-            Object.keys(staticProperties)
-                .forEach(propertyName => {
-                    this.defineProperty(constructor, propertyName, staticProperties[propertyName]);
-                });
-        }
-
-        return {
-            constructor,
-            proto
-        };
-    }
-
     constructor() {
         this.defineProperty(this.typedArrayProto, 'fill', this.objectMethod((thisArg, args, context) => {
             if (thisArg.internalFields.hasOwnProperty('typedArray')) {
@@ -636,6 +577,65 @@ export class Engine {
 
         Object.keys(globals)
             .forEach(name => this.defineProperty(this.globalScope.variables, name, (globals as any)[name]));
+    }
+
+    createClassProto(classDefinition: ClassDefinition): ObjectValue {
+        const classProtoDefinition = classDefinition.baseClass ? {
+            ...classDefinition,
+            proto: classDefinition.baseClass && classDefinition.baseClass.proto
+        }: classDefinition;
+
+        const proto = classDefinition.proto || this.newObject(classProtoDefinition);
+        this.fillObject(proto, classProtoDefinition);
+
+        return proto;
+    }
+
+    createClass(classDefinition: ClassDefinition): Class {
+        const proto = this.createClassProto(classDefinition);
+
+        const constructorFunction = classDefinition.ctor ?
+            this.objectMethodFunction(classDefinition.ctor) :
+            classDefinition.baseClass ?
+                (classDefinition.baseClass.constructor.internalFields as FunctionInternalFields).invoke :
+                this.objectMethodFunction(() => undefinedValue);
+
+        const constructor = this.functionValue(constructorFunction, {
+            name: classDefinition.name,
+            proto
+        });
+
+        const staticMethods = classDefinition.staticMethods;
+
+        if (staticMethods) {
+            Object.keys(staticMethods)
+                .forEach(methodName => {
+                    const m = staticMethods[methodName];
+                    
+                    const methodBody = m instanceof Function ?
+                        this.objectMethodFunction(m) :
+                        m.isMethod ?
+                            this.objectMethodFunction(m.body) :
+                            m.body;
+
+                    this.defineProperty(constructor, methodName, this.functionValue(methodBody, {
+                        name: methodName
+                    }));
+                });
+        }
+
+        const staticProperties = classDefinition.staticProperties;
+        if (staticProperties) {
+            Object.keys(staticProperties)
+                .forEach(propertyName => {
+                    this.defineProperty(constructor, propertyName, staticProperties[propertyName]);
+                });
+        }
+
+        return {
+            constructor,
+            proto
+        };
     }
 
     defineProperty(object: ObjectValue, propertyName: string, value: Value): void;
@@ -772,26 +772,6 @@ export class Engine {
 
     runGlobalCode(script: ParsedScript): void {
         this.globalScope.evaluateScript(script);
-    }
-
-    objectConstructor(thisArg: Value, args: Value[], context: Context, newTarget: Value): ObjectValue {
-        if (args.length === 0) {
-            return objectValue(this.rootProto);
-        }
-
-        const value = args[0];
-
-        switch(value.type) {
-            case 'null':
-            case 'undefined':
-                return objectValue(this.rootProto);
-            default:
-                return this.toObject(value, context);
-        }
-    }
-
-    arrayBufferConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return undefinedValue;
     }
 
     float64ArrayConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
