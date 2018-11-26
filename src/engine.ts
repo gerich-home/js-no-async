@@ -518,7 +518,7 @@ export class Engine {
     readonly eval = this.functionValue((thisArg, args, context) => {
         const code = args[0] as StringValue;
 
-        const code = parseExpression(`function() { ${ code.value } }`);
+        const functionExpression = parseExpression(`function() { ${ code.value } }`);
         
         if(context.scope === null) {
            throw new NotImplementedError('cannot eval', context);
