@@ -50,378 +50,378 @@ test_builtins_Array:
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Array/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Array/**/*.js"
 
 test_builtins_ArrayBuffer:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/ArrayBuffer/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/ArrayBuffer/**/*.js"
 
 test_builtins_ArrayIteratorPrototype:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/ArrayIteratorPrototype/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/ArrayIteratorPrototype/**/*.js"
 
 test_builtins_AsyncFromSyncIteratorPrototype:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/AsyncFromSyncIteratorPrototype/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/AsyncFromSyncIteratorPrototype/**/*.js"
 
 test_builtins_AsyncFunction:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/AsyncFunction/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/AsyncFunction/**/*.js"
 
 test_builtins_AsyncGeneratorFunction:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/AsyncGeneratorFunction/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/AsyncGeneratorFunction/**/*.js"
 
 test_builtins_AsyncGeneratorPrototype:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/AsyncGeneratorPrototype/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/AsyncGeneratorPrototype/**/*.js"
 
 test_builtins_AsyncIteratorPrototype_Symbol.asyncIterator:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/AsyncIteratorPrototype/Symbol.asyncIterator/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/AsyncIteratorPrototype/Symbol.asyncIterator/**/*.js"
 
 test_builtins_Atomics:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Atomics/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Atomics/**/*.js"
 
 test_builtins_BigInt:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/BigInt/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/BigInt/**/*.js"
 
 test_builtins_Boolean:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Boolean/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Boolean/**/*.js"
 
 test_builtins_DataView:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/DataView/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/DataView/**/*.js"
 
 test_builtins_Date:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Date/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Date/**/*.js"
 
 test_builtins_Error:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Error/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Error/**/*.js"
 
 test_builtins_Function:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Function/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Function/**/*.js"
 
 test_builtins_GeneratorFunction:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/GeneratorFunction/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/GeneratorFunction/**/*.js"
 
 test_builtins_GeneratorPrototype:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/GeneratorPrototype/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/GeneratorPrototype/**/*.js"
 
 test_builtins_Infinity:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Infinity/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Infinity/**/*.js"
 
 test_builtins_IteratorPrototype_Symbol.iterator:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/IteratorPrototype/Symbol.iterator/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/IteratorPrototype/Symbol.iterator/**/*.js"
 
 test_builtins_JSON:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/JSON/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/JSON/**/*.js"
 
 test_builtins_Map:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Map/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Map/**/*.js"
 
 test_builtins_MapIteratorPrototype:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/MapIteratorPrototype/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/MapIteratorPrototype/**/*.js"
 
 test_builtins_Math:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Math/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Math/**/*.js"
 
 test_builtins_NaN:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/NaN/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/NaN/**/*.js"
 
 test_builtins_NativeErrors:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/NativeErrors/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/NativeErrors/**/*.js"
 
 test_builtins_Number:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Number/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Number/**/*.js"
 
 test_builtins_Object:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Object/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Object/**/*.js"
 
 test_builtins_Promise:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Promise/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Promise/**/*.js"
 
 test_builtins_Proxy:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Proxy/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Proxy/**/*.js"
 
 test_builtins_Reflect:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Reflect/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Reflect/**/*.js"
 
 test_builtins_RegExp:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/RegExp/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/RegExp/**/*.js"
 
 test_builtins_RegExpStringIteratorPrototype:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/RegExpStringIteratorPrototype/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/RegExpStringIteratorPrototype/**/*.js"
 
 test_builtins_Set:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Set/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Set/**/*.js"
 
 test_builtins_SetIteratorPrototype:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/SetIteratorPrototype/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/SetIteratorPrototype/**/*.js"
 
 test_builtins_SharedArrayBuffer:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/SharedArrayBuffer/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/SharedArrayBuffer/**/*.js"
 
 test_builtins_String:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/String/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/String/**/*.js"
 
 test_builtins_StringIteratorPrototype:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/StringIteratorPrototype/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/StringIteratorPrototype/**/*.js"
 
 test_builtins_Symbol:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/Symbol/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/Symbol/**/*.js"
 
 test_builtins_ThrowTypeError:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/ThrowTypeError/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/ThrowTypeError/**/*.js"
 
 test_builtins_TypedArray:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/TypedArray/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/TypedArray/**/*.js"
 
 test_builtins_TypedArrayConstructors:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/TypedArrayConstructors/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/TypedArrayConstructors/**/*.js"
 
 test_builtins_WeakMap:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/WeakMap/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/WeakMap/**/*.js"
 
 test_builtins_WeakSet:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/WeakSet/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/WeakSet/**/*.js"
 
 test_builtins_decodeURI:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/decodeURI/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/decodeURI/**/*.js"
 
 test_builtins_decodeURIComponent:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/decodeURIComponent/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/decodeURIComponent/**/*.js"
 
 test_builtins_encodeURI:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/encodeURI/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/encodeURI/**/*.js"
 
 test_builtins_encodeURIComponent:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/encodeURIComponent/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/encodeURIComponent/**/*.js"
 
 test_builtins_eval:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/eval/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/eval/**/*.js"
 
 test_builtins_global:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/global/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/global/**/*.js"
 
 test_builtins_isFinite:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/isFinite/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/isFinite/**/*.js"
 
 test_builtins_isNaN:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/isNaN/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/isNaN/**/*.js"
 
 test_builtins_parseFloat:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/parseFloat/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/parseFloat/**/*.js"
 
 test_builtins_parseInt:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/parseInt/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/parseInt/**/*.js"
 
 test_builtins_undefined:
    stage: test
    script:
     - npm run start
    variables:
-     TESTS_GLOB: "test262/test/builtins/undefined/**/*.js"
+     TESTS_GLOB: "test262/test/built-ins/undefined/**/*.js"
 
 
 test_intl402:
