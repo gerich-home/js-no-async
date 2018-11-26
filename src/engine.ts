@@ -78,7 +78,7 @@ export class Engine {
             }
         },
         methods: {
-            ['valueOf' as any]: (thisArg, args, context) => {
+            ['valueOf' as string]: (thisArg, args, context) => {
                 if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
                     const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
                     if (wrappedValue.type === 'string') {
@@ -141,6 +141,53 @@ export class Engine {
         }
     });
 
+    readonly Number = this.createClass({
+        name: 'Number',
+        constructor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
+            const value = numberValue(args.length === 0 ? 0 : this.toNumber(args[0], context));
+    
+            if (newTarget === undefinedValue) {
+                return value;
+            } else {
+                thisArg.internalFields['wrappedValue'] = value;
+                return undefinedValue;
+            }
+        },
+        methods: {
+            ['valueOf' as string]: (thisArg, args, context) => {
+                if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
+                    const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
+                    if (wrappedValue.type === 'number') {
+                        return wrappedValue;
+                    }
+                }
+    
+                throw this.newTypeError('Number.valueOf failed', context);
+            }
+        },
+        staticMethods: {
+            isNaN: (thisArg, args, context) => {
+                const number = this.toNumber(args[0], context);
+                
+                return booleanValue(Number.isNaN(number));
+            }
+        }
+    });
+
+    readonly Boolean = this.createClass({
+        name: 'Boolean',
+        constructor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
+            const value = booleanValue(args.length === 0 ? false : this.toBoolean(args[0]));
+    
+            if (newTarget) {
+                return value;
+            } else {
+                thisArg.internalFields['wrappedValue'] = value;
+                return undefinedValue;
+            }
+        }
+    });
+
     readonly Date = this.createClass({
         name: 'Date',
         constructor: (thisArg: ObjectValue, args: Value[], context: Context) => {
@@ -151,14 +198,39 @@ export class Engine {
             getTimezoneOffset: thisArg => {
                 return numberValue(thisArg.internalFields['date'].getTimezoneOffset());
             },
-            ['valueOf' as any]: thisArg => {
+            ['valueOf' as string]: thisArg => {
                 return numberValue(thisArg.internalFields['date'].valueOf());
             }
         }
     });
 
-    readonly RegExp = this.functionValue(this.regExpConstructor.bind(this), { name: 'RegExp' });
-    readonly Promise = this.functionValue(this.promiseConstructor.bind(this), { name: 'Promise' });
+    readonly RegExp = this.createClass({
+        name: 'RegExp',
+        constructor: (thisArg: ObjectValue, args: Value[], context: Context) => {
+            thisArg.internalFields['regex'] = new RegExp(this.toString(args[0], context), this.toString(args[1], context));
+            return undefinedValue;
+        },
+        methods: {
+            test: (thisArg, args, context) => {
+                return booleanValue(thisArg.internalFields['regex'].test(this.toString(args[0], context)));
+            }
+        }
+    });
+
+    readonly Promise = this.createClass({
+        name: 'Promise',
+        constructor: () => {
+            return undefinedValue;
+        }
+    });
+
+    readonly Symbol = this.createClass({
+        name: 'Symbol',
+        constructor: () => {
+            return undefinedValue;
+        }
+    });
+    
     readonly Error = this.functionValue(this.errorConstructor.bind(this), { name: 'Error', prototype: this.errorPrototype });
     readonly TypeError = this.functionValue(this.errorConstructor.bind(this), { name: 'TypeError', prototype: objectValue(this.errorPrototype) });
     readonly EvalError = this.functionValue(this.errorConstructor.bind(this), { name: 'EvalError', prototype: objectValue(this.errorPrototype) });
@@ -176,9 +248,6 @@ export class Engine {
     readonly Uint16Array = this.functionValue(this.uint16ArrayConstructor.bind(this), { name: 'Uint16Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
     readonly Uint8Array = this.functionValue(this.uint8ArrayConstructor.bind(this), { name: 'Uint8Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
     readonly Uint8ClampedArray = this.functionValue(this.uint8ClampedArrayConstructor.bind(this), { name: 'Uint8ClampedArray', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
-    readonly Number = this.functionValue(this.numberConstructor.bind(this), { name: 'Number' });
-    readonly Boolean = this.functionValue(this.booleanConstructor.bind(this), { name: 'Boolean' });
-    readonly Symbol = this.functionValue(this.symbolConstructor.bind(this), { name: 'Symbol' });
     readonly Reflect = this.newObject();
     readonly Math = this.newObject();
     readonly log = this.functionValue((thisArg, values, context) => {
@@ -391,33 +460,8 @@ export class Engine {
             
             return numberValue(Math.pow(a, b));
         }));
-        
-        this.defineProperty(this.Number, 'isNaN', this.functionValue((thisArg, args, context) => {
-            const a = this.toNumber(args[0], context);
-            
-            return booleanValue(Number.isNaN(a));
-        }));
-        
-        const regExpPrototype = this.readProperty(this.RegExp, 'prototype', null) as ObjectValue;
-        
-        this.defineProperty(regExpPrototype, 'test', this.objectMethod((thisArg, args, context) => {
-            return booleanValue(thisArg.internalFields['regex'].test(this.toString(args[0], context)));
-        }));
 
         this.defineProperty(this.errorPrototype, 'toString', this.objectMethod((thisArg, args, context) => this.readProperty(thisArg, 'message', context)));
-        
-        const numberPrototype = (this.readProperty(this.Number, 'prototype', null) as ObjectValue);
-
-        this.defineProperty(numberPrototype, 'valueOf', this.objectMethod((thisArg, args, context) => {
-            if (thisArg.internalFields.hasOwnProperty('wrappedValue')) {
-                const wrappedValue: Value = thisArg.internalFields['wrappedValue'];
-                if (wrappedValue.type === 'number') {
-                    return wrappedValue;
-                }
-            }
-
-            throw this.newTypeError('Number.valueOf failed', context);
-        }));
         
         this.defineProperty(this.typedArrayPrototype, 'fill', this.objectMethod((thisArg, args, context) => {
             if (thisArg.internalFields.hasOwnProperty('typedArray')) {
@@ -637,15 +681,6 @@ export class Engine {
         }
     }
 
-    regExpConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        thisArg.internalFields['regex'] = new RegExp(this.toString(args[0], context), this.toString(args[1], context));
-        return undefinedValue;
-    }
-
-    promiseConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
-        return undefinedValue;
-    }
-
     arrayBufferConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
         return undefinedValue;
     }
@@ -693,32 +728,6 @@ export class Engine {
 
     errorConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
         this.defineProperty(thisArg, 'message', args.length === 0 ? undefinedValue: args[0]);
-        return undefinedValue;
-    }
-
-    numberConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
-        const value = numberValue(args.length === 0 ? 0 : this.toNumber(args[0], context));
-
-        if (newTarget === undefinedValue) {
-            return value;
-        } else {
-            thisArg.internalFields['wrappedValue'] = value;
-            return undefinedValue;
-        }
-    }
-
-    booleanConstructor(thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
-        const value = booleanValue(args.length === 0 ? false : this.toBoolean(args[0]));
-
-        if (newTarget) {
-            return value;
-        } else {
-            thisArg.internalFields['wrappedValue'] = value;
-            return undefinedValue;
-        }
-    }
-
-    symbolConstructor(): UndefinedValue {
         return undefinedValue;
     }
 
