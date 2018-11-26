@@ -7,6 +7,7 @@ stages:
   - build
   - test
 
+
 build:
   stage: build
   script:
@@ -19,12 +20,14 @@ build:
     untracked: true
     when: on_success
 
+
 test_custom:
   stage: test
   script:
    - npm run start
   variables:
     TESTS_GLOB: "testCode/**/*.js"
+
 
 test_harness:
   stage: test
@@ -33,6 +36,7 @@ test_harness:
   variables:
     TESTS_GLOB: "test262/test/harness/**/*.js"
 
+
 test_annexB:
   stage: test
   script:
@@ -40,12 +44,385 @@ test_annexB:
   variables:
     TESTS_GLOB: "test262/test/annexB/**/*.js"
 
-test_builtins:
-  stage: test
-  script:
-   - npm run start
-  variables:
-    TESTS_GLOB: "test262/test/built-ins/**/*.js"
+
+test_builtins_Array:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Array/**/*.js"
+
+test_builtins_ArrayBuffer:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/ArrayBuffer/**/*.js"
+
+test_builtins_ArrayIteratorPrototype:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/ArrayIteratorPrototype/**/*.js"
+
+test_builtins_AsyncFromSyncIteratorPrototype:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/AsyncFromSyncIteratorPrototype/**/*.js"
+
+test_builtins_AsyncFunction:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/AsyncFunction/**/*.js"
+
+test_builtins_AsyncGeneratorFunction:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/AsyncGeneratorFunction/**/*.js"
+
+test_builtins_AsyncGeneratorPrototype:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/AsyncGeneratorPrototype/**/*.js"
+
+test_builtins_AsyncIteratorPrototype_Symbol.asyncIterator:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/AsyncIteratorPrototype/Symbol.asyncIterator/**/*.js"
+
+test_builtins_Atomics:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Atomics/**/*.js"
+
+test_builtins_BigInt:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/BigInt/**/*.js"
+
+test_builtins_Boolean:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Boolean/**/*.js"
+
+test_builtins_DataView:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/DataView/**/*.js"
+
+test_builtins_Date:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Date/**/*.js"
+
+test_builtins_Error:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Error/**/*.js"
+
+test_builtins_Function:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Function/**/*.js"
+
+test_builtins_GeneratorFunction:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/GeneratorFunction/**/*.js"
+
+test_builtins_GeneratorPrototype:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/GeneratorPrototype/**/*.js"
+
+test_builtins_Infinity:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Infinity/**/*.js"
+
+test_builtins_IteratorPrototype_Symbol.iterator:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/IteratorPrototype/Symbol.iterator/**/*.js"
+
+test_builtins_JSON:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/JSON/**/*.js"
+
+test_builtins_Map:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Map/**/*.js"
+
+test_builtins_MapIteratorPrototype:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/MapIteratorPrototype/**/*.js"
+
+test_builtins_Math:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Math/**/*.js"
+
+test_builtins_NaN:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/NaN/**/*.js"
+
+test_builtins_NativeErrors:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/NativeErrors/**/*.js"
+
+test_builtins_Number:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Number/**/*.js"
+
+test_builtins_Object:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Object/**/*.js"
+
+test_builtins_Promise:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Promise/**/*.js"
+
+test_builtins_Proxy:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Proxy/**/*.js"
+
+test_builtins_Reflect:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Reflect/**/*.js"
+
+test_builtins_RegExp:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/RegExp/**/*.js"
+
+test_builtins_RegExpStringIteratorPrototype:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/RegExpStringIteratorPrototype/**/*.js"
+
+test_builtins_Set:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Set/**/*.js"
+
+test_builtins_SetIteratorPrototype:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/SetIteratorPrototype/**/*.js"
+
+test_builtins_SharedArrayBuffer:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/SharedArrayBuffer/**/*.js"
+
+test_builtins_String:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/String/**/*.js"
+
+test_builtins_StringIteratorPrototype:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/StringIteratorPrototype/**/*.js"
+
+test_builtins_Symbol:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/Symbol/**/*.js"
+
+test_builtins_ThrowTypeError:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/ThrowTypeError/**/*.js"
+
+test_builtins_TypedArray:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/TypedArray/**/*.js"
+
+test_builtins_TypedArrayConstructors:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/TypedArrayConstructors/**/*.js"
+
+test_builtins_WeakMap:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/WeakMap/**/*.js"
+
+test_builtins_WeakSet:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/WeakSet/**/*.js"
+
+test_builtins_decodeURI:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/decodeURI/**/*.js"
+
+test_builtins_decodeURIComponent:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/decodeURIComponent/**/*.js"
+
+test_builtins_encodeURI:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/encodeURI/**/*.js"
+
+test_builtins_encodeURIComponent:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/encodeURIComponent/**/*.js"
+
+test_builtins_eval:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/eval/**/*.js"
+
+test_builtins_global:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/global/**/*.js"
+
+test_builtins_isFinite:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/isFinite/**/*.js"
+
+test_builtins_isNaN:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/isNaN/**/*.js"
+
+test_builtins_parseFloat:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/parseFloat/**/*.js"
+
+test_builtins_parseInt:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/parseInt/**/*.js"
+
+test_builtins_undefined:
+   stage: test
+   script:
+    - npm run start
+   variables:
+     TESTS_GLOB: "test262/test/builtins/undefined/**/*.js"
+
 
 test_intl402:
   stage: test
@@ -53,6 +430,7 @@ test_intl402:
    - npm run start
   variables:
     TESTS_GLOB: "test262/test/intl402/**/*.js"
+
 
 test_language_arguments-object:
   stage: test
@@ -200,3 +578,45 @@ test_language_punctuators:
    - npm run start
   variables:
     TESTS_GLOB: "test262/test/language/punctuators/**/*.js"
+
+test_language_reserved-words:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/reserved-words/**/*.js"
+
+test_language_rest-parameters:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/rest-parameters/**/*.js"
+
+test_language_source-text:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/source-text/**/*.js"
+
+test_language_statements:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/statements/**/*.js"
+
+test_language_types:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/types/**/*.js"
+
+test_language_white-space:
+  stage: test
+  script:
+   - npm run start
+  variables:
+    TESTS_GLOB: "test262/test/language/white-space/**/*.js"
