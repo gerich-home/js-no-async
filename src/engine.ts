@@ -9,13 +9,182 @@ import { AccessorObjectPropertyDescriptor, Class, ClassDefinition, Context, Func
 export class Engine {
     readonly rootProto = objectValue(nullValue);
     readonly functionProto = objectValue(this.rootProto);
-    readonly errorProto = objectValue(this.rootProto);
     readonly typedArrayProto = objectValue(this.rootProto);
     readonly typedArrayFunctionProto = this.functionValue((thisArg, vals, context) => {
         throw new NotImplementedError("Do not call TypedArray", context);
     });
     
-    readonly Object = this.functionValue(this.objectConstructor.bind(this), { name: 'Object', proto: this.rootProto});
+    readonly Object = this.createClass({
+        name: 'Object',
+        proto: this.rootProto,
+        ctor: (thisArg: Value, args: Value[], context: Context, newTarget: Value) => {
+            if (args.length === 0) {
+                return objectValue(this.rootProto);
+            }
+    
+            const value = args[0];
+    
+            switch(value.type) {
+                case 'null':
+                case 'undefined':
+                    return objectValue(this.rootProto);
+                default:
+                    return this.toObject(value, context);
+            }
+        },
+        methods: {
+            ['toString' as string]: {
+                isMethod: false,
+                body: (thisArg) => {
+                    switch(thisArg.type) {
+                        case 'null':
+                            return stringValue('[object Null]');
+                        case 'undefined':
+                            return stringValue('[object Undefined]');
+                        case 'boolean':
+                            return stringValue('[object Boolean]');
+                        case 'number':
+                            return stringValue('[object Number]');
+                        case 'string':
+                            return stringValue('[object String]');
+                        case 'object':
+                            if (this.isFunction(thisArg)) {
+                                return stringValue('[object Function]');
+                            } else {
+                                return stringValue('[object Object]');
+                            }
+                    }
+                }
+            },
+            ['valueOf' as string]: thisArg => thisArg,
+            ['hasOwnProperty' as string]: (thisArg, args, context) => booleanValue(thisArg.ownProperties.has(this.toString(args[0], context))),
+            ['propertyIsEnumerable' as string]: (thisArg, args, context) => {
+                const name = this.toString(args[0], context);
+    
+                const property = thisArg.ownProperties.get(name);
+    
+                return booleanValue(property !== undefined && property.enumerable);
+            }
+        },
+        staticMethods: {
+            getOwnPropertyDescriptor: (thisArg, args, context) => {
+                const object = args[0];
+                
+                if (object.type !== 'object') {
+                    throw this.newTypeError('getOwnPropertyDescriptor should be called for object value', context);
+                }
+
+                const descriptor = object.ownProperties.get(this.toString(args[1], context));
+
+                if (descriptor === undefined) {
+                    return undefinedValue;
+                }
+
+                const resultDescriptor = this.newObject();
+
+                this.defineProperty(resultDescriptor, 'configurable', booleanValue(descriptor.configurable));
+                this.defineProperty(resultDescriptor, 'enumerable', booleanValue(descriptor.enumerable));
+                
+                if (descriptor.descriptorType === 'value') {
+                    this.defineProperty(resultDescriptor, 'value', descriptor.value);
+                    this.defineProperty(resultDescriptor, 'writable', booleanValue(descriptor.writable));
+                } else {
+                    this.defineProperty(resultDescriptor, 'get', descriptor.getter);
+                    this.defineProperty(resultDescriptor, 'set', descriptor.setter);
+                }
+
+                return resultDescriptor;
+            },
+            defineProperty: (thisArg, args, context) => {
+                const object = args[0];
+                if (object.type !== 'object') {
+                    throw this.newTypeError('defineProperty should be called for object value', context);
+                }
+
+                const descriptor = args[2];
+                if (descriptor.type !== 'object') {
+                    throw new NotImplementedError('defineProperty descriptor arg should be object value', context);
+                }
+
+                const propertyName = this.toString(args[1], context);
+                const existingDescriptor = object.ownProperties.get(propertyName);
+
+                if (existingDescriptor !== undefined && existingDescriptor.configurable === false) {
+                    throw this.newTypeError('cannot change non configurable property', context);
+                }
+
+                const value = this.readProperty(descriptor, 'value', context);
+                const writable = this.readProperty(descriptor, 'writable', context);
+                const enumerable = this.readProperty(descriptor, 'enumerable', context);
+                const configurable = this.readProperty(descriptor, 'configurable', context);
+                const getter = this.readProperty(descriptor, 'get', context);
+                const setter = this.readProperty(descriptor, 'set', context);
+
+                const isAccessor = getter !== undefinedValue || setter !== undefinedValue;
+                const isValue = value !== undefinedValue || writable !== undefinedValue;
+
+                if (isAccessor && isValue) {
+                    throw this.newTypeError('property descriptor should be either a value of an accessor', context);
+                }
+
+                const mandatoryDefaults: MandatoryObjectPropertyDescriptorFields = (existingDescriptor === undefined) ? {
+                    configurable: false,
+                    enumerable: false
+                } : existingDescriptor;
+
+                const mandatoryFields: MandatoryObjectPropertyDescriptorFields = {
+                    configurable: configurable === undefinedValue ? mandatoryDefaults.configurable : this.toBoolean(configurable),
+                    enumerable: enumerable === undefinedValue ? mandatoryDefaults.configurable : this.toBoolean(enumerable)
+                };
+
+                if (isAccessor) {
+                    if (getter.type !== 'undefined' && getter.type !== 'object') {
+                        throw this.newTypeError('getter should be a function ' + getter.type, context);
+                    }
+
+                    if (setter.type !== 'undefined' && setter.type !== 'object') {
+                        throw this.newTypeError('setter should be a function ' + setter.type, context);
+                    }
+
+                    const defaults = (existingDescriptor === undefined || existingDescriptor.descriptorType !== 'accessor') ? {
+                        getter: undefinedValue,
+                        setter: undefinedValue
+                    } : existingDescriptor;
+        
+                    this.defineProperty(object, propertyName, {
+                        descriptorType: 'accessor',
+                        ...mandatoryFields,
+                        getter: getter === undefinedValue ? defaults.getter : getter,
+                        setter: setter === undefinedValue ? defaults.setter : setter
+                    });  
+                } else {
+                    const defaults = (existingDescriptor === undefined || existingDescriptor.descriptorType !== 'value') ? {
+                        value: undefinedValue,
+                        writable: false
+                    } : existingDescriptor;
+
+                    this.defineProperty(object, propertyName, {
+                        descriptorType: 'value',
+                        ...mandatoryFields,
+                        value: value === undefinedValue ? defaults.value : value,
+                        writable: writable === undefinedValue ? defaults.writable : this.toBoolean(writable)
+                    });
+                }
+
+                return object;
+            },
+            getPrototypeOf:(thisArg, args, context) => {
+                const object = args[0];
+                
+                if (object.type !== 'object') {
+                    throw this.newTypeError('getOwnPropertyDescriptor should be called for object value', context);
+                }
+
+                return object.proto;
+            }
+        }
+    });
+
     readonly Function = this.functionValue(this.functionConstructor.bind(this), { name: 'Function', proto: this.functionProto });
     
     readonly Array = this.createClass({
@@ -243,6 +412,9 @@ export class Engine {
         ctor: (thisArg: ObjectValue, args: Value[], context: Context) => {
             this.defineProperty(thisArg, 'message', args.length === 0 ? undefinedValue: args[0]);
             return undefinedValue;
+        },
+        methods: {
+            ['toString' as string]: (thisArg, args, context) => this.readProperty(thisArg, 'message', context)
         }
     });
 
@@ -318,11 +490,20 @@ export class Engine {
     readonly globalVars = this.newObject();
     readonly globalScope = new Scope(this, null, null, null, this.globalVars, this.globalVars);
 
-    createClass(classDefinition: ClassDefinition): Class {
-        const proto = this.newObject(classDefinition.baseClass ? {
+    createClassProto(classDefinition: ClassDefinition): ObjectValue {
+        const classProtoDefinition = classDefinition.baseClass ? {
             ...classDefinition,
             proto: classDefinition.baseClass && classDefinition.baseClass.proto
-        }: classDefinition);
+        }: classDefinition;
+
+        const proto = classDefinition.proto || this.newObject(classProtoDefinition);
+        this.fillObject(proto, classProtoDefinition);
+
+        return proto;
+    }
+
+    createClass(classDefinition: ClassDefinition): Class {
+        const proto = this.createClassProto(classDefinition);
 
         const constructorFunction = classDefinition.ctor ?
             this.objectMethodFunction(classDefinition.ctor) :
@@ -369,160 +550,8 @@ export class Engine {
     }
 
     constructor() {
-        this.defineProperty(this.rootProto, 'toString', this.functionValue((thisArg) => {
-            switch(thisArg.type) {
-                case 'null':
-                    return stringValue('[object Null]');
-                case 'undefined':
-                    return stringValue('[object Undefined]');
-                case 'boolean':
-                    return stringValue('[object Boolean]');
-                case 'number':
-                    return stringValue('[object Number]');
-                case 'string':
-                    return stringValue('[object String]');
-                case 'object':
-                    if (this.isFunction(thisArg)) {
-                        return stringValue('[object Function]');
-                    } else {
-                        return stringValue('[object Object]');
-                    }
-            }
-        }));
-        this.defineProperty(this.rootProto, 'valueOf', this.functionValue(thisArg => thisArg));
-        this.defineProperty(this.rootProto, 'constructor', this.Object);
-        this.defineProperty(this.rootProto, 'hasOwnProperty', this.objectMethod((thisArg, args, context) => booleanValue(thisArg.ownProperties.has(this.toString(args[0], context)))));
-        
-        this.defineProperty(this.rootProto, 'propertyIsEnumerable', this.objectMethod((thisArg, args, context) => {
-            const name = this.toString(args[0], context);
-
-            const property = thisArg.ownProperties.get(name);
-
-            return booleanValue(property !== undefined && property.enumerable);
-        }));
-
         this.defineProperty(this.functionProto, 'call', this.objectMethod((thisArg, args, context) => this.executeFunction(thisArg, args[0] as ObjectValue, args.slice(1), context)));
 
-        this.defineProperty(this.Object, 'getOwnPropertyDescriptor', this.functionValue((thisArg, args, context) => {
-            const object = args[0];
-            
-            if (object.type !== 'object') {
-                throw this.newTypeError('getOwnPropertyDescriptor should be called for object value', context);
-            }
-
-            const descriptor = object.ownProperties.get(this.toString(args[1], context));
-
-            if (descriptor === undefined) {
-                return undefinedValue;
-            }
-
-            const resultDescriptor = this.newObject();
-
-            this.defineProperty(resultDescriptor, 'configurable', booleanValue(descriptor.configurable));
-            this.defineProperty(resultDescriptor, 'enumerable', booleanValue(descriptor.enumerable));
-            
-            if (descriptor.descriptorType === 'value') {
-                this.defineProperty(resultDescriptor, 'value', descriptor.value);
-                this.defineProperty(resultDescriptor, 'writable', booleanValue(descriptor.writable));
-            } else {
-                this.defineProperty(resultDescriptor, 'get', descriptor.getter);
-                this.defineProperty(resultDescriptor, 'set', descriptor.setter);
-            }
-
-            return resultDescriptor;
-        }));
-
-        this.defineProperty(this.Object, 'defineProperty', this.functionValue((thisArg, args, context) => {
-            const object = args[0];
-            if (object.type !== 'object') {
-                throw this.newTypeError('defineProperty should be called for object value', context);
-            }
-
-            const descriptor = args[2];
-            if (descriptor.type !== 'object') {
-                throw new NotImplementedError('defineProperty descriptor arg should be object value', context);
-            }
-
-            const propertyName = this.toString(args[1], context);
-            const existingDescriptor = object.ownProperties.get(propertyName);
-
-            if (existingDescriptor !== undefined && existingDescriptor.configurable === false) {
-                throw this.newTypeError('cannot change non configurable property', context);
-            }
-
-            const value = this.readProperty(descriptor, 'value', context);
-            const writable = this.readProperty(descriptor, 'writable', context);
-            const enumerable = this.readProperty(descriptor, 'enumerable', context);
-            const configurable = this.readProperty(descriptor, 'configurable', context);
-            const getter = this.readProperty(descriptor, 'get', context);
-            const setter = this.readProperty(descriptor, 'set', context);
-
-            const isAccessor = getter !== undefinedValue || setter !== undefinedValue;
-            const isValue = value !== undefinedValue || writable !== undefinedValue;
-
-            if (isAccessor && isValue) {
-                throw this.newTypeError('property descriptor should be either a value of an accessor', context);
-            }
-
-            const mandatoryDefaults: MandatoryObjectPropertyDescriptorFields = (existingDescriptor === undefined) ? {
-                configurable: false,
-                enumerable: false
-            } : existingDescriptor;
-
-            const mandatoryFields: MandatoryObjectPropertyDescriptorFields = {
-                configurable: configurable === undefinedValue ? mandatoryDefaults.configurable : this.toBoolean(configurable),
-                enumerable: enumerable === undefinedValue ? mandatoryDefaults.configurable : this.toBoolean(enumerable)
-            };
-
-            if (isAccessor) {
-                if (getter.type !== 'undefined' && getter.type !== 'object') {
-                    throw this.newTypeError('getter should be a function ' + getter.type, context);
-                }
-
-                if (setter.type !== 'undefined' && setter.type !== 'object') {
-                    throw this.newTypeError('setter should be a function ' + setter.type, context);
-                }
-
-                const defaults = (existingDescriptor === undefined || existingDescriptor.descriptorType !== 'accessor') ? {
-                    getter: undefinedValue,
-                    setter: undefinedValue
-                } : existingDescriptor;
-    
-                this.defineProperty(object, propertyName, {
-                    descriptorType: 'accessor',
-                    ...mandatoryFields,
-                    getter: getter === undefinedValue ? defaults.getter : getter,
-                    setter: setter === undefinedValue ? defaults.setter : setter
-                });  
-            } else {
-                const defaults = (existingDescriptor === undefined || existingDescriptor.descriptorType !== 'value') ? {
-                    value: undefinedValue,
-                    writable: false
-                } : existingDescriptor;
-
-                this.defineProperty(object, propertyName, {
-                    descriptorType: 'value',
-                    ...mandatoryFields,
-                    value: value === undefinedValue ? defaults.value : value,
-                    writable: writable === undefinedValue ? defaults.writable : this.toBoolean(writable)
-                });
-            }
-
-            return object;
-        }));
-
-        this.defineProperty(this.Object, 'getPrototypeOf', this.functionValue((thisArg, args, context) => {
-            const object = args[0];
-            
-            if (object.type !== 'object') {
-                throw this.newTypeError('getOwnPropertyDescriptor should be called for object value', context);
-            }
-
-            return object.proto;
-        }));
-
-        this.defineProperty(this.errorProto, 'toString', this.objectMethod((thisArg, args, context) => this.readProperty(thisArg, 'message', context)));
-        
         this.defineProperty(this.typedArrayProto, 'fill', this.objectMethod((thisArg, args, context) => {
             if (thisArg.internalFields.hasOwnProperty('typedArray')) {
                 const wrappedValue = thisArg.internalFields['typedArray'];
@@ -553,7 +582,7 @@ export class Engine {
         };
 
         const globals = {
-            Object: this.Object,
+            Object: this.Object.constructor,
             Function: this.Function,
             Array: this.Array.constructor,
             String: this.String.constructor,
@@ -978,10 +1007,14 @@ export class Engine {
     newObject(objectDefinition?: ObjectDefinition): ObjectValue {
         const result = objectValue(objectDefinition && objectDefinition.proto || this.rootProto);
         
-        if (!objectDefinition) {
-            return result;
+        if (objectDefinition) {
+            this.fillObject(result, objectDefinition);
         }
+        
+        return result;
+    }
 
+    fillObject(object: ObjectValue, objectDefinition: ObjectDefinition): void {
         const methods = objectDefinition.methods;
         if (methods) {
             Object.keys(methods)
@@ -994,7 +1027,7 @@ export class Engine {
                             this.objectMethodFunction(m.body) :
                             m.body;
 
-                    this.defineProperty(result, methodName, this.functionValue(methodBody, {
+                    this.defineProperty(object, methodName, this.functionValue(methodBody, {
                         name: methodName
                     }));
                 });
@@ -1004,16 +1037,14 @@ export class Engine {
         if (properties) {
             Object.keys(properties)
                 .forEach(propertyName => {
-                    this.defineProperty(result, propertyName, properties[propertyName]);
+                    this.defineProperty(object, propertyName, properties[propertyName]);
                 });
         }
 
         const getOwnPropertyDescriptor = objectDefinition.getOwnPropertyDescriptor;
         if (getOwnPropertyDescriptor) {
-            (result.internalFields as HasGetPropertyDescriptor).getOwnPropertyDescriptor = getOwnPropertyDescriptor;
+            (object.internalFields as HasGetPropertyDescriptor).getOwnPropertyDescriptor = getOwnPropertyDescriptor;
         }
-        
-        return result;
     }
 
     constructArray(elements: Value[], context: Context): ObjectValue {
