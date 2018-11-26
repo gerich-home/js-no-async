@@ -6,6 +6,11 @@ import { RuntimeError } from './runtimeError';
 import { Scope } from './scope';
 import { AccessorObjectPropertyDescriptor, ClassDefinition, Context, FunctionInternalFields, FunctionOptions, GeneralFunctionInvoke, HasGetPropertyDescriptor, MandatoryObjectPropertyDescriptorFields, NullValue, ObjectDefinition, ObjectMethodInvoke, ObjectPropertyDescriptor, ObjectValue, StringValue, UndefinedValue, Value, ValueObjectPropertyDescriptor } from './types';
 
+type Class = {
+    constructor: ObjectValue;
+    prototype: ObjectValue;
+};
+
 export class Engine {
     readonly rootPrototype = objectValue(nullValue);
     readonly functionPrototype = objectValue(this.rootPrototype);
@@ -230,6 +235,13 @@ export class Engine {
             return undefinedValue;
         }
     });
+
+    readonly ArrayBuffer = this.createClass({
+        name: 'ArrayBuffer',
+        constructor: () => {
+            return undefinedValue;
+        }
+    });
     
     readonly Error = this.functionValue(this.errorConstructor.bind(this), { name: 'Error', prototype: this.errorPrototype });
     readonly TypeError = this.functionValue(this.errorConstructor.bind(this), { name: 'TypeError', prototype: objectValue(this.errorPrototype) });
@@ -238,7 +250,6 @@ export class Engine {
     readonly ReferenceError = this.functionValue(this.errorConstructor.bind(this), { name: 'ReferenceError', prototype: objectValue(this.errorPrototype) });
     readonly SyntaxError = this.functionValue(this.errorConstructor.bind(this), { name: 'SyntaxError', prototype: objectValue(this.errorPrototype) });
     readonly URIError = this.functionValue(this.errorConstructor.bind(this), { name: 'URIError', prototype: objectValue(this.errorPrototype) });
-    readonly ArrayBuffer = this.functionValue(this.arrayBufferConstructor.bind(this), { name: 'ArrayBuffer' });
     readonly Float64Array = this.functionValue(this.float64ArrayConstructor.bind(this), { name: 'Float64Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
     readonly Float32Array = this.functionValue(this.float32ArrayConstructor.bind(this), { name: 'Float32Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
     readonly Int32Array = this.functionValue(this.int32ArrayConstructor.bind(this), { name: 'Int32Array', prototype: objectValue(this.typedArrayPrototype), functionPrototype: this.typedArrayFunctionPrototype });
@@ -258,15 +269,16 @@ export class Engine {
     readonly globalVars = this.newObject();
     readonly globalScope = new Scope(this, null, null, null, this.globalVars, this.globalVars);
 
-    createClass(classDefinition: ClassDefinition): ObjectValue {
+    createClass(classDefinition: ClassDefinition): Class {
         const prototype = this.newObject(classDefinition);
 
-        const result = this.functionValue(this.objectMethodFunction(classDefinition.constructor || (() => undefinedValue)), {
+        const constructor = this.functionValue(this.objectMethodFunction(classDefinition.constructor || (() => undefinedValue)), {
             name: classDefinition.name,
             prototype
         });
 
         const staticMethods = classDefinition.staticMethods;
+
         if (staticMethods) {
             Object.keys(staticMethods)
                 .forEach(methodName => {
@@ -278,7 +290,7 @@ export class Engine {
                             this.objectMethodFunction(m.body) :
                             m.body;
 
-                    this.defineProperty(result, methodName, this.functionValue(methodBody, {
+                    this.defineProperty(constructor, methodName, this.functionValue(methodBody, {
                         name: methodName
                     }));
                 });
@@ -288,11 +300,14 @@ export class Engine {
         if (staticProperties) {
             Object.keys(staticProperties)
                 .forEach(propertyName => {
-                    this.defineProperty(result, propertyName, staticProperties[propertyName]);
+                    this.defineProperty(constructor, propertyName, staticProperties[propertyName]);
                 });
         }
 
-        return result;
+        return {
+            constructor,
+            prototype
+        };
     }
 
     constructor() {
@@ -495,11 +510,11 @@ export class Engine {
         const globals = {
             Object: this.Object,
             Function: this.Function,
-            Array: this.Array,
-            String: this.String,
-            Date: this.Date,
-            RegExp: this.RegExp,
-            Promise: this.Promise,
+            Array: this.Array.constructor,
+            String: this.String.constructor,
+            Date: this.Date.constructor,
+            RegExp: this.RegExp.constructor,
+            Promise: this.Promise.constructor,
             Error: this.Error,
             TypeError: this.TypeError,
             EvalError: this.EvalError,
@@ -507,7 +522,7 @@ export class Engine {
             ReferenceError: this.ReferenceError,
             SyntaxError: this.SyntaxError,
             URIError: this.URIError,
-            ArrayBuffer: this.ArrayBuffer,
+            ArrayBuffer: this.ArrayBuffer.constructor,
             Float64Array: this.Float64Array,
             Float32Array: this.Float32Array,
             Int32Array: this.Int32Array,
@@ -517,9 +532,9 @@ export class Engine {
             Uint16Array: this.Uint16Array,
             Uint8Array: this.Uint8Array,
             Uint8ClampedArray: this.Uint8ClampedArray,
-            Number: this.Number,
-            Boolean: this.Boolean,
-            Symbol: this.Symbol,
+            Number: this.Number.constructor,
+            Boolean: this.Boolean.constructor,
+            Symbol: this.Symbol.constructor,
             Reflect: this.Reflect,
             Math: this.Math,
             log: this.log,
@@ -860,11 +875,11 @@ export class Engine {
     toObject(value: Exclude<Value, NullValue | UndefinedValue>, context: Context): ObjectValue {
         switch(value.type) {
             case 'number':
-                return this.constructObject(this.Number, [value], context);
+                return this.constructObject(this.Number.constructor, [value], context);
             case 'boolean':
-                return this.constructObject(this.Boolean, [value], context);
+                return this.constructObject(this.Boolean.constructor, [value], context);
             case 'string':
-                return this.constructObject(this.String, [value], context);
+                return this.constructObject(this.String.constructor, [value], context);
             case 'object':
                 return value;
         }
@@ -962,7 +977,7 @@ export class Engine {
     }
 
     constructArray(elements: Value[], context: Context): ObjectValue {
-        return this.constructObject(this.Array, elements, context);
+        return this.constructObject(this.Array.constructor, elements, context);
     }
 
     constructObject(constructor: Value, args: Value[], context: Context, newTargetConstructor: Value = constructor): ObjectValue {

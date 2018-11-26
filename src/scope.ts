@@ -701,7 +701,7 @@ export class Scope {
     }
 
     evaluateRegExpLiteral(expression: RegExpLiteral): Value {
-        return this.engine.constructObject(this.engine.RegExp, [
+        return this.engine.constructObject(this.engine.RegExp.constructor, [
             stringValue(expression.pattern),
             stringValue(expression.flags)
         ], this.createContext(expression));
