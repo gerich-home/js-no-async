@@ -120,6 +120,7 @@ export type ObjectDefinition = {
 export type ClassDefinition = ObjectDefinition & {
     name?: string;
     ctor?: ObjectMethodInvoke;
+    ctorProto?: ObjectValue;
     baseClass?: Class;
     staticMethods?: {
         [key: string]: MethodDefinition;
