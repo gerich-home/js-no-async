@@ -520,7 +520,7 @@ export class Engine {
 
         const functionExpression = parseExpression(`function() { ${ code.value } }`);
         
-        if(context.scope === null) {
+        if (context === null || context.scope === null) {
            throw new NotImplementedError('cannot eval', context);
         }
         
