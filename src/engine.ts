@@ -509,6 +509,24 @@ export class Engine {
         return undefinedValue;
     });
 
+    readonly isNaN = this.functionValue((thisArg, args, context) => {
+        const number = this.toNumber(args[0], context);
+        
+        return booleanValue(Number.isNaN(number));
+    });
+
+    readonly eval = this.functionValue((thisArg, args, context) => {
+        const code = args[0] as StringValue;
+
+        const code = parseExpression(`function() { ${ code.value } }`);
+        
+        if(context.scope === null) {
+           throw new NotImplementedError('cannot eval', context);
+        }
+        
+        return this.executeFunction(context.scope.functionValue(functionExpression as FunctionExpression), thisArg, [], context);
+    });
+
     readonly globalVars = this.newObject();
     readonly globalScope = new Scope(this, null, null, null, this.globalVars, this.globalVars);
 
@@ -573,6 +591,8 @@ export class Engine {
             Reflect: this.Reflect,
             Math: this.Math,
             log: this.log,
+            isNaN: this.isNaN,
+            eval: this.eval
         };
 
         Object.keys(globals)
