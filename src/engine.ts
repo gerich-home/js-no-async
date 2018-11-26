@@ -185,7 +185,29 @@ export class Engine {
         }
     });
 
-    readonly Function = this.functionValue(this.functionConstructor.bind(this), { name: 'Function', proto: this.functionProto });
+    readonly Function = this.createClass({
+        name: 'Function',
+        proto: this.functionProto,
+        ctor: (thisArg: ObjectValue, values: Value[], context: Context) => {
+            if (!values.every(x => x.type === 'string')) {
+                throw new NotImplementedError('function constructor arguments must be strings', context);
+            }
+    
+            if (values.length > 0) {                
+                const argNames = values.slice(0, -1) as StringValue[];
+                const code = values.slice(-1)[0] as StringValue;
+    
+                const functionExpression = parseExpression(`function(${ argNames.map(a => a.value).join(',') }) { ${code.value} }`);
+                
+                return this.globalScope.functionValue(functionExpression as FunctionExpression);
+            } else {
+                return this.functionValue(() => undefinedValue);
+            }
+        },
+        methods: {
+            call: (thisArg, args, context) => this.executeFunction(thisArg, args[0] as ObjectValue, args.slice(1), context)
+        }
+    });
     
     readonly Array = this.createClass({
         name: 'Array',
@@ -550,8 +572,6 @@ export class Engine {
     }
 
     constructor() {
-        this.defineProperty(this.functionProto, 'call', this.objectMethod((thisArg, args, context) => this.executeFunction(thisArg, args[0] as ObjectValue, args.slice(1), context)));
-
         this.defineProperty(this.typedArrayProto, 'fill', this.objectMethod((thisArg, args, context) => {
             if (thisArg.internalFields.hasOwnProperty('typedArray')) {
                 const wrappedValue = thisArg.internalFields['typedArray'];
@@ -583,7 +603,7 @@ export class Engine {
 
         const globals = {
             Object: this.Object.constructor,
-            Function: this.Function,
+            Function: this.Function.constructor,
             Array: this.Array.constructor,
             String: this.String.constructor,
             Date: this.Date.constructor,
@@ -813,23 +833,6 @@ export class Engine {
     typedArrayConstructor(constructor: new (items: Iterable<number>) => any, thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value): Value {
         thisArg.internalFields['typedArray'] = new constructor(this.toArray(args[0] as ObjectValue, context).map(value => this.toNumber(value, context)));
         return undefinedValue;
-    }
-
-    functionConstructor(thisArg: ObjectValue, values: Value[], context: Context): Value {
-        if (!values.every(x => x.type === 'string')) {
-            throw new NotImplementedError('function constructor arguments must be strings', context);
-        }
-
-        if (values.length > 0) {                
-            const argNames = values.slice(0, -1) as StringValue[];
-            const code = values.slice(-1)[0] as StringValue;
-
-            const functionExpression = parseExpression(`function(${ argNames.map(a => a.value).join(',') }) { ${code.value} }`);
-            
-            return this.globalScope.functionValue(functionExpression as FunctionExpression);
-        } else {
-            return this.functionValue(() => undefinedValue);
-        }
     }
 
     objectMethod(invoke: ObjectMethodInvoke, options?: FunctionOptions): ObjectValue {
