@@ -17,7 +17,54 @@ export class Engine {
     
     readonly Object = this.functionValue(this.objectConstructor.bind(this), { name: 'Object', prototype: this.rootPrototype});
     readonly Function = this.functionValue(this.functionConstructor.bind(this), { name: 'Function', prototype: this.functionPrototype });
-    readonly Array = this.functionValue(this.arrayConstructor.bind(this), { name: 'Array' });
+    
+    readonly Array = this.createClass({
+        name: 'Array',
+        constructor: (thisArg: ObjectValue, args: Value[]) => {
+            this.defineProperty(thisArg, 'length', numberValue(args.length));
+
+            args.forEach((value, index) => this.defineProperty(thisArg, index.toString(), value));
+
+            return undefinedValue;
+        },
+        methods: {
+            push: (thisArg, values, context) => {
+                const lengthValue = this.readProperty(thisArg, 'length', context);
+
+                const length = this.toNumber(lengthValue, context);
+                const newLength = numberValue(length + values.length);
+                
+                this.defineProperty(thisArg, 'length', newLength);
+
+                values.forEach((value, index) => this.defineProperty(thisArg, (length + index).toString(), value));
+
+                return newLength;
+            },
+            join: (thisArg, values, context) => {
+                const array = this.toArray(thisArg, context);
+
+                const separator = values.length === 0 ? ',' : this.toString(values[0], context);
+
+                return stringValue(array.map(item => this.toString(item, context)).join(separator));
+            },
+            slice: (thisArg, values, context) => {
+                const array = this.toArray(thisArg, context);
+
+                const start = values.length >= 1 ? this.toNumber(values[0], context) : undefined;
+                const end = values.length >= 2 ? this.toNumber(values[1], context) : undefined;
+
+                return this.constructArray(array.slice(start, end), context);
+            },
+            forEach: (thisArg, values, context) => {
+                const array = this.toArray(thisArg, context);
+
+                array.forEach((value, index) => this.executeFunction(values[0], undefinedValue, [value, numberValue(index)], context));
+
+                return undefinedValue;
+            }
+        }
+    });
+
     readonly String = this.createClass({
         name: 'String',
         constructor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
@@ -356,46 +403,6 @@ export class Engine {
         this.defineProperty(regExpPrototype, 'test', this.objectMethod((thisArg, args, context) => {
             return booleanValue(thisArg.internalFields['regex'].test(this.toString(args[0], context)));
         }));
-        
-        const arrayPrototype = this.readProperty(this.Array, 'prototype', null) as ObjectValue;
-
-        this.defineProperty(arrayPrototype, 'push', this.objectMethod((thisArg, values, context) => {
-            const lengthValue = this.readProperty(thisArg, 'length', context);
-
-            const length = this.toNumber(lengthValue, context);
-            const newLength = numberValue(length + values.length);
-            
-            this.defineProperty(thisArg, 'length', newLength);
-
-            values.forEach((value, index) => this.defineProperty(thisArg, (length + index).toString(), value));
-
-            return newLength;
-        }));
-
-        this.defineProperty(arrayPrototype, 'join', this.objectMethod((thisArg, values, context) => {
-            const array = this.toArray(thisArg, context);
-
-            const separator = values.length === 0 ? ',' : this.toString(values[0], context);
-
-            return stringValue(array.map(item => this.toString(item, context)).join(separator));
-        }));
-
-        this.defineProperty(arrayPrototype, 'slice', this.objectMethod((thisArg, values, context) => {
-            const array = this.toArray(thisArg, context);
-
-            const start = values.length >= 1 ? this.toNumber(values[0], context) : undefined;
-            const end = values.length >= 2 ? this.toNumber(values[1], context) : undefined;
-
-            return this.constructArray(array.slice(start, end), context);
-        }));
-
-        this.defineProperty(arrayPrototype, 'forEach', this.objectMethod((thisArg, values, context) => {
-            const array = this.toArray(thisArg, context);
-
-            array.forEach((value, index) => this.executeFunction(values[0], undefinedValue, [value, numberValue(index)], context));
-
-            return undefinedValue;
-        }));
 
         this.defineProperty(this.errorPrototype, 'toString', this.objectMethod((thisArg, args, context) => this.readProperty(thisArg, 'message', context)));
         
@@ -628,14 +635,6 @@ export class Engine {
             default:
                 return this.toObject(value, context);
         }
-    }
-
-    arrayConstructor(thisArg: ObjectValue, args: Value[]): UndefinedValue {
-        this.defineProperty(thisArg, 'length', numberValue(args.length));
-
-        args.forEach((value, index) => this.defineProperty(thisArg, index.toString(), value));
-
-        return undefinedValue;
     }
 
     regExpConstructor(thisArg: ObjectValue, args: Value[], context: Context): Value {
