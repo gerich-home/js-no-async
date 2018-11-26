@@ -30,7 +30,7 @@ export type ObjectValue = {
     readonly type: 'object';
     readonly ownProperties: ObjectProperties;
     readonly internalFields: InternalObjectFields;
-    readonly prototype: ObjectValue | NullValue;
+    readonly proto: ObjectValue | NullValue;
 };
 
 export type ObjectPrototypeValue = ObjectValue | NullValue;
@@ -97,8 +97,8 @@ export type CallStackEntry = {
 
 export type FunctionOptions = {
     name?: string | null;
-    functionPrototype?: ObjectValue;
-    prototype?: ObjectValue;
+    functionProto?: ObjectValue;
+    proto?: ObjectValue;
     isConstructor?: boolean;
 };
 
@@ -113,16 +113,23 @@ export type ObjectDefinition = {
     properties?: {
         [key: string]: ObjectPropertyDescriptor;
     };
+    proto?: ObjectValue;
     getOwnPropertyDescriptor?: GetOwnPropertyDescriptorMethod;
 };
 
 export type ClassDefinition = ObjectDefinition & {
     name?: string;
-    constructor?: ObjectMethodInvoke;
+    ctor?: ObjectMethodInvoke;
+    baseClass?: Class;
     staticMethods?: {
         [key: string]: MethodDefinition;
     };
     staticProperties?: {
         [key: string]: ObjectPropertyDescriptor;
     };
+};
+
+export type Class = {
+    constructor: ObjectValue;
+    proto: ObjectValue;
 };
