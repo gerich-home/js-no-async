@@ -1,4 +1,4 @@
-import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForInStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, ObjectProperty, PatternLike, RegExpLiteral, ReturnStatement, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, WhileStatement } from '@babel/types';
+import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForInStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, ObjectProperty, PatternLike, RegExpLiteral, ReturnStatement, SequenceExpression, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, WhileStatement } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { NotImplementedError } from './notImplementedError';
@@ -124,6 +124,8 @@ export class Scope {
                 return this.evaluateObjectExpression(expression);
             case 'ConditionalExpression':
                 return this.evaluateConditionalExpression(expression);
+            case 'SequenceExpression':
+                return this.evaluateSequenceExpression(expression);
             case 'ArrayExpression':
                 return this.evaluateArrayExpression(expression);
             case 'FunctionExpression':
@@ -481,6 +483,8 @@ export class Scope {
                 return booleanValue(this.engine.toNumber(left, this.createContext(expression)) < this.engine.toNumber(right, this.createContext(expression)));
             case 'instanceof':
                 return booleanValue(this.engine.isInstanceOf(left, right, this.createContext(expression)));
+            case 'in':
+                return booleanValue(this.isIn(left, right, this.createContext(expression)));
         }
 
         throw new NotImplementedError('unsupported operator ' + expression.operator, this.createContext(expression));
@@ -498,6 +502,18 @@ export class Scope {
         }
 
         throw new NotImplementedError('unsupported operator ' + expression.operator, this.createContext(expression));
+    }
+
+    isIn(left: Value, right: Value, context: Context): boolean {
+        if (left.type !== 'string') {
+            throw new NotImplementedError('unsupported left operand of in operator ' + left.type, context);
+        }
+
+        if (right.type !== 'object') {
+            throw new NotImplementedError('unsupported right operand of in operator ' + right.type, context);
+        }
+
+        return this.engine.getPropertyDescriptor(right, left.value, context) !== null;
     }
 
     strictEqual(left: Value, right: Value): boolean {
@@ -524,6 +540,12 @@ export class Scope {
             expression.alternate;
 
         return this.evaluateExpression(selectedExpression);
+    }
+
+    evaluateSequenceExpression(expression: SequenceExpression): Value {
+        const values = expression.expressions.map(expression => this.evaluateExpression(expression));
+
+        return values[values.length - 1];
     }
 
     evaluateObjectExpression(expression: ObjectExpression): ObjectValue {

@@ -630,11 +630,8 @@ export class Engine {
         return this.executeFunction(context.scope.functionValue(functionExpression as FunctionExpression), thisArg, [], context);
     });
 
-    readonly globalVars = this.newObject();
-    readonly globalScope = new Scope(this, null, null, null, this.globalVars, this.globalVars);
-
-    constructor() {
-        const globals: { [key: string]: Value } = {
+    readonly globalVars = this.newObject({
+        fields: {
             Object: this.Object.constructor,
             Function: this.Function.constructor,
             Array: this.Array.constructor,
@@ -667,11 +664,10 @@ export class Engine {
             log: this.log,
             isNaN: this.isNaN,
             eval: this.eval
-        };
+        }
+    });
 
-        Object.keys(globals)
-            .forEach(name => this.defineProperty(this.globalScope.variables, name, globals[name]));
-    }
+    readonly globalScope = new Scope(this, null, null, null, this.globalVars, this.globalVars);
 
     createClassProto(classDefinition: ClassDefinition): ObjectValue {
         const classProtoDefinition = classDefinition.baseClass ? {
@@ -1116,6 +1112,16 @@ export class Engine {
             Object.keys(properties)
                 .forEach(propertyName => {
                     this.defineProperty(object, propertyName, properties[propertyName]);
+                });
+        }
+
+        const fields = objectDefinition.fields;
+        if (fields) {
+            Object.keys(fields)
+                .forEach(fieldName => {
+                    this.defineProperty(object, fieldName, {
+                        value: fields[fieldName]
+                    });
                 });
         }
 

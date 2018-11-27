@@ -113,6 +113,9 @@ export type ObjectDefinition = {
     properties?: {
         [key: string]: ObjectPropertyDescriptor;
     };
+    fields?: {
+        [key: string]: ObjectValue;
+    };
     proto?: ObjectValue;
     getOwnPropertyDescriptor?: GetOwnPropertyDescriptorMethod;
 };

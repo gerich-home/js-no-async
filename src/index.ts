@@ -2,6 +2,7 @@ import fs from 'fs';
 import glob from 'glob';
 import yaml from 'js-yaml';
 import { Engine } from './engine';
+import { undefinedValue } from './factories';
 import { parseScript } from './globals';
 
 run();
@@ -68,6 +69,14 @@ async function run() {
 
             try {
                 // console.log(`RUN:      ${file}`);
+                engine.defineProperty(engine.globalScope.variables, '$262', engine.newObject({
+                    methods: {
+                        createRealm: () => undefinedValue
+                    },
+                    fields: {
+                        global: engine.globalScope.variables
+                    }
+                }));
                 engine.runGlobalCode(allHarnessCode['assert.js']);
                 engine.runGlobalCode(allHarnessCode['sta.js']);
                 (config.includes || [])
