@@ -9,10 +9,6 @@ import { AccessorObjectPropertyDescriptor, Class, ClassDefinition, Context, Func
 export class Engine {
     readonly rootProto = objectValue(nullValue);
     readonly functionProto = objectValue(this.rootProto);
-    readonly typedArrayProto = objectValue(this.rootProto);
-    readonly typedArrayFunctionProto = this.functionValue((thisArg, vals, context) => {
-        throw new NotImplementedError("Do not call TypedArray", context);
-    });
     
     readonly Object = this.createClass({
         name: 'Object',
@@ -470,16 +466,123 @@ export class Engine {
         baseClass: this.Error
     });
 
-    readonly Float64Array = this.functionValue(this.float64ArrayConstructor.bind(this), { name: 'Float64Array', proto: objectValue(this.typedArrayProto), functionProto: this.typedArrayFunctionProto });
-    readonly Float32Array = this.functionValue(this.float32ArrayConstructor.bind(this), { name: 'Float32Array', proto: objectValue(this.typedArrayProto), functionProto: this.typedArrayFunctionProto });
-    readonly Int32Array = this.functionValue(this.int32ArrayConstructor.bind(this), { name: 'Int32Array', proto: objectValue(this.typedArrayProto), functionProto: this.typedArrayFunctionProto });
-    readonly Int16Array = this.functionValue(this.int16ArrayConstructor.bind(this), { name: 'Int16Array', proto: objectValue(this.typedArrayProto), functionProto: this.typedArrayFunctionProto });
-    readonly Int8Array = this.functionValue(this.int8ArrayConstructor.bind(this), { name: 'Int8Array', proto: objectValue(this.typedArrayProto), functionProto: this.typedArrayFunctionProto });
-    readonly Uint32Array = this.functionValue(this.uint32ArrayConstructor.bind(this), { name: 'Uint32Array', proto: objectValue(this.typedArrayProto), functionProto: this.typedArrayFunctionProto });
-    readonly Uint16Array = this.functionValue(this.uint16ArrayConstructor.bind(this), { name: 'Uint16Array', proto: objectValue(this.typedArrayProto), functionProto: this.typedArrayFunctionProto });
-    readonly Uint8Array = this.functionValue(this.uint8ArrayConstructor.bind(this), { name: 'Uint8Array', proto: objectValue(this.typedArrayProto), functionProto: this.typedArrayFunctionProto });
-    readonly Uint8ClampedArray = this.functionValue(this.uint8ClampedArrayConstructor.bind(this), { name: 'Uint8ClampedArray', proto: objectValue(this.typedArrayProto), functionProto: this.typedArrayFunctionProto });
+    readonly TypedArray = this.createClass({
+        name: 'TypedArray',
+        ctor: (thisArg, vals, context) => {
+            throw new NotImplementedError("Do not call TypedArray", context);
+        },
+        methods: {
+            fill: (thisArg, args, context) => {
+                if (thisArg.internalFields.hasOwnProperty('typedArray')) {
+                    const wrappedValue = thisArg.internalFields['typedArray'];
+                    return numberValue(wrappedValue.fill(this.toNumber(args[0], context)));
+                }
+
+                throw this.newTypeError('TypedArray[index] failed', context);
+            }
+        },
+        getOwnPropertyDescriptor: (object, propertyName) => {
+            const index = Number(propertyName);
+
+            if (isNaN(Number(propertyName)) || index < 0) {
+                return null;
+            }
+
+            return {
+                descriptorType: 'accessor',
+                getter: this.objectMethod((thisArg, args, context) => {
+                    if (thisArg.internalFields.hasOwnProperty('typedArray')) {
+                        const wrappedValue = thisArg.internalFields['typedArray'];
+                        return numberValue(wrappedValue[index]);
+                    }
     
+                    throw this.newTypeError('TypedArray[index] failed', context);
+                })
+            } as ObjectPropertyDescriptor;
+        }
+    });
+
+    readonly Float64Array = this.createClass({
+        name: 'Float64Array',
+        baseClass: this.TypedArray,
+        ctorProto: this.TypedArray.constructor,
+        ctor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
+            return this.typedArrayConstructor(Float64Array, thisArg, args, context, newTarget);
+        }
+    });
+
+    readonly Float32Array = this.createClass({
+        name: 'Float32Array',
+        baseClass: this.TypedArray,
+        ctorProto: this.TypedArray.constructor,
+        ctor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
+            return this.typedArrayConstructor(Float32Array, thisArg, args, context, newTarget);
+        }
+    });
+
+    readonly Int32Array = this.createClass({
+        name: 'Int32Array',
+        baseClass: this.TypedArray,
+        ctorProto: this.TypedArray.constructor,
+        ctor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
+            return this.typedArrayConstructor(Int32Array, thisArg, args, context, newTarget);
+        }
+    });
+
+    readonly Int16Array = this.createClass({
+        name: 'Int16Array',
+        baseClass: this.TypedArray,
+        ctorProto: this.TypedArray.constructor,
+        ctor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
+            return this.typedArrayConstructor(Int16Array, thisArg, args, context, newTarget);
+        }
+    });
+    
+    readonly Int8Array = this.createClass({
+        name: 'Int8Array',
+        baseClass: this.TypedArray,
+        ctorProto: this.TypedArray.constructor,
+        ctor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
+            return this.typedArrayConstructor(Int8Array, thisArg, args, context, newTarget);
+        }
+    });
+
+    readonly Uint32Array = this.createClass({
+        name: 'Uint32Array',
+        baseClass: this.TypedArray,
+        ctorProto: this.TypedArray.constructor,
+        ctor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
+            return this.typedArrayConstructor(Uint32Array, thisArg, args, context, newTarget);
+        }
+    });
+
+    readonly Uint16Array = this.createClass({
+        name: 'Uint16Array',
+        baseClass: this.TypedArray,
+        ctorProto: this.TypedArray.constructor,
+        ctor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
+            return this.typedArrayConstructor(Uint16Array, thisArg, args, context, newTarget);
+        }
+    });
+    
+    readonly Uint8Array = this.createClass({
+        name: 'Uint8Array',
+        baseClass: this.TypedArray,
+        ctorProto: this.TypedArray.constructor,
+        ctor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
+            return this.typedArrayConstructor(Uint8Array, thisArg, args, context, newTarget);
+        }
+    });
+    
+    readonly Uint8ClampedArray = this.createClass({
+        name: 'Uint8ClampedArray',
+        baseClass: this.TypedArray,
+        ctorProto: this.TypedArray.constructor,
+        ctor: (thisArg: ObjectValue, args: Value[], context: Context, newTarget: Value) => {
+            return this.typedArrayConstructor(Uint8ClampedArray, thisArg, args, context, newTarget);
+        }
+    });
+
     readonly Reflect = this.newObject({
         methods: {
             construct: (thisArg, args, context) => {
@@ -531,36 +634,7 @@ export class Engine {
     readonly globalScope = new Scope(this, null, null, null, this.globalVars, this.globalVars);
 
     constructor() {
-        this.defineProperty(this.typedArrayProto, 'fill', this.objectMethod((thisArg, args, context) => {
-            if (thisArg.internalFields.hasOwnProperty('typedArray')) {
-                const wrappedValue = thisArg.internalFields['typedArray'];
-                return numberValue(wrappedValue.fill(this.toNumber(args[0], context)));
-            }
-
-            throw this.newTypeError('TypedArray[index] failed', context);
-        }));
-
-        (this.typedArrayProto.internalFields as HasGetPropertyDescriptor).getOwnPropertyDescriptor = (object, propertyName) => {
-            const index = Number(propertyName);
-
-            if (isNaN(Number(propertyName)) || index < 0) {
-                return null;
-            }
-
-            return {
-                descriptorType: 'accessor',
-                getter: this.objectMethod((thisArg, args, context) => {
-                    if (thisArg.internalFields.hasOwnProperty('typedArray')) {
-                        const wrappedValue = thisArg.internalFields['typedArray'];
-                        return numberValue(wrappedValue[index]);
-                    }
-    
-                    throw this.newTypeError('TypedArray[index] failed', context);
-                })
-            } as ObjectPropertyDescriptor;
-        };
-
-        const globals = {
+        const globals: { [key: string]: Value } = {
             Object: this.Object.constructor,
             Function: this.Function.constructor,
             Array: this.Array.constructor,
@@ -576,15 +650,15 @@ export class Engine {
             SyntaxError: this.SyntaxError.constructor,
             URIError: this.URIError.constructor,
             ArrayBuffer: this.ArrayBuffer.constructor,
-            Float64Array: this.Float64Array,
-            Float32Array: this.Float32Array,
-            Int32Array: this.Int32Array,
-            Int16Array: this.Int16Array,
-            Int8Array: this.Int8Array,
-            Uint32Array: this.Uint32Array,
-            Uint16Array: this.Uint16Array,
-            Uint8Array: this.Uint8Array,
-            Uint8ClampedArray: this.Uint8ClampedArray,
+            Float64Array: this.Float64Array.constructor,
+            Float32Array: this.Float32Array.constructor,
+            Int32Array: this.Int32Array.constructor,
+            Int16Array: this.Int16Array.constructor,
+            Int8Array: this.Int8Array.constructor,
+            Uint32Array: this.Uint32Array.constructor,
+            Uint16Array: this.Uint16Array.constructor,
+            Uint8Array: this.Uint8Array.constructor,
+            Uint8ClampedArray: this.Uint8ClampedArray.constructor,
             Number: this.Number.constructor,
             Boolean: this.Boolean.constructor,
             Symbol: this.Symbol.constructor,
@@ -596,7 +670,7 @@ export class Engine {
         };
 
         Object.keys(globals)
-            .forEach(name => this.defineProperty(this.globalScope.variables, name, (globals as any)[name]));
+            .forEach(name => this.defineProperty(this.globalScope.variables, name, globals[name]));
     }
 
     createClassProto(classDefinition: ClassDefinition): ObjectValue {
