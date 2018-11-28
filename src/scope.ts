@@ -3,7 +3,6 @@ import { Context } from './context';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, ParsedScript, stringValue, undefinedValue } from './factories';
 import { isFunctionNode } from './globals';
-import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
 import { BooleanValue, CallStackEntry, FunctionNode, NumberValue, ObjectPropertyDescriptor, ObjectValue, StringValue, Value } from './types';
 
@@ -481,7 +480,7 @@ export class Scope {
                 return booleanValue(this.createContext(expression).isIn(left, right));
         }
 
-        throw new NotImplementedError(this.createContext(expression), 'unsupported operator ' + expression.operator);
+        throw this.createContext(expression).newNotImplementedError('unsupported operator ' + expression.operator);
     }
 
     evaluateLogicalExpression(expression: LogicalExpression): Value {
@@ -495,7 +494,7 @@ export class Scope {
                 return this.createContext(expression.left).toBoolean(left) ? right() : left;
         }
 
-        throw new NotImplementedError(this.createContext(expression), 'unsupported operator ' + expression.operator);
+        throw this.createContext(expression).newNotImplementedError('unsupported operator ' + expression.operator);
     }
 
     getIdentifier(context: Context, identifierName: string): [Scope, ObjectPropertyDescriptor] | null {
@@ -582,7 +581,7 @@ export class Scope {
                     }
                     break;
                 default:
-                    throw new NotImplementedError(this.createContext(expression), 'unsupported property type ' + property.type);
+                    throw this.createContext(expression).newNotImplementedError('unsupported property type ' + property.type);
             }
         }
 
@@ -594,7 +593,7 @@ export class Scope {
             
         if (!property.computed) {
             if (key.type !== 'Identifier') {
-                throw new NotImplementedError(this.createContext(key), 'getters/setters are unsupported ' + key.type);
+                throw this.createContext(key).newNotImplementedError('getters/setters are unsupported ' + key.type);
             }
 
             return key.name;
@@ -644,7 +643,7 @@ export class Scope {
         }
 
         if (expression.left.type !== 'Identifier' && expression.left.type !== 'MemberExpression') {
-            throw new NotImplementedError(this.createContext(expression), 'left part of assignment operator is invalid');
+            throw this.createContext(expression).newNotImplementedError('left part of assignment operator is invalid');
         }
 
         const left = this.evaluateExpression(expression.left);
@@ -680,7 +679,7 @@ export class Scope {
                 return numberValue(this.createContext(expression).toNumber(left) >>> this.createContext(expression).toNumber(right));
         }
         
-        throw new NotImplementedError(this.createContext(expression), 'unsupported operator ' + expression.operator);
+        throw this.createContext(expression).newNotImplementedError('unsupported operator ' + expression.operator);
     }
 
     evaluateUpdateExpression(expression: UpdateExpression): Value {

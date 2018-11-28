@@ -2,7 +2,6 @@ import { parseExpression } from '@babel/parser';
 import { FunctionExpression } from '@babel/types';
 import { Context } from './context';
 import { booleanValue, nullValue, numberValue, objectValue, ParsedScript, stringValue, undefinedValue } from './factories';
-import { NotImplementedError } from './notImplementedError';
 import { Scope } from './scope';
 import { AccessorObjectPropertyDescriptor, Class, ClassDefinition, FunctionInternalFields, FunctionOptions, GeneralFunctionInvoke, HasGetPropertyDescriptor, MandatoryObjectPropertyDescriptorFields, ObjectDefinition, ObjectMethodInvoke, ObjectPropertyDescriptor, ObjectValue, StringValue, Value, ValueObjectPropertyDescriptor } from './types';
 
@@ -99,7 +98,7 @@ export class Engine {
 
                 const descriptor = args[2];
                 if (descriptor.type !== 'object') {
-                    throw new NotImplementedError(context, 'defineProperty descriptor arg should be object value');
+                    throw context.newNotImplementedError('defineProperty descriptor arg should be object value');
                 }
 
                 const propertyName = context.toString(args[1]);
@@ -186,7 +185,7 @@ export class Engine {
         proto: this.functionProto,
         ctor: (context: Context, thisArg: ObjectValue, values: Value[]) => {
             if (!values.every(x => x.type === 'string')) {
-                throw new NotImplementedError(context, 'function constructor arguments must be strings');
+                throw context.newNotImplementedError('function constructor arguments must be strings');
             }
     
             if (values.length > 0) {                
@@ -469,7 +468,7 @@ export class Engine {
     readonly TypedArray = this.createClass({
         name: 'TypedArray',
         ctor: context => {
-            throw new NotImplementedError(context, 'Do not call TypedArray');
+            throw context.newNotImplementedError('Do not call TypedArray');
         },
         methods: {
             fill: (context, thisArg, args) => {
@@ -624,7 +623,7 @@ export class Engine {
         const functionExpression = parseExpression(`function() { ${ code.value } }`);
         
         if (context === null || context.scope === null) {
-           throw new NotImplementedError(context, 'cannot eval');
+           throw context.newNotImplementedError('cannot eval');
         }
         
         return context.executeFunction(context.scope.functionValue(functionExpression as FunctionExpression), thisArg, []);
@@ -771,7 +770,7 @@ export class Engine {
     objectMethodFunction(invoke: ObjectMethodInvoke): GeneralFunctionInvoke {
         return (context, thisArg, argValues, newTarget) => {
             if (thisArg.type === 'null' || thisArg.type === 'undefined') {
-                throw new NotImplementedError(context, 'cannot call object method with null or undefined');
+                throw context.newNotImplementedError('cannot call object method with null or undefined');
             }
 
             const thisAsObject = context.toObject(thisArg);
