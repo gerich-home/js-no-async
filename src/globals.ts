@@ -1,7 +1,7 @@
 import { parse } from '@babel/parser';
 import { Identifier, Node, SourceLocation } from '@babel/types';
+import { Context } from './context';
 import { ParsedScript } from './factories';
-import { Context } from './types';
 
 export function formatStack(context: Context): string {
     if (context === null) {

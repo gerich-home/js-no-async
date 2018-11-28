@@ -1,5 +1,5 @@
+import { Context } from './context';
 import { formatStack } from './globals';
-import { Context } from './types';
 
 export class NotImplementedError extends Error {
     constructor(

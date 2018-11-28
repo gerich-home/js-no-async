@@ -1,5 +1,6 @@
+import { Context } from './context';
 import { formatStack } from './globals';
-import { Context, Value } from './types';
+import { Value } from './types';
 
 export class RuntimeError extends Error {
     constructor(
@@ -21,7 +22,7 @@ function tryGetThrownValue(context: Context, thrownValue: Value): string | null 
     }
     
     try {
-        return context.scope.engine.toString(context, thrownValue);
+        return context.toString(thrownValue);
     } catch {
         return null;
     }

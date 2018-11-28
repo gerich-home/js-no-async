@@ -1,4 +1,5 @@
-import { ArrowFunctionExpression, FunctionDeclaration, FunctionExpression, Node, ObjectMethod, Statement } from '@babel/types';
+import { ArrowFunctionExpression, FunctionDeclaration, FunctionExpression, ObjectMethod, Statement } from '@babel/types';
+import { Context } from './context';
 import { Scope } from './scope';
 
 export type Value = NumberValue | StringValue | BooleanValue | NullValue | UndefinedValue | ObjectValue;
@@ -76,11 +77,6 @@ export type HasGetPropertyDescriptor = {
 
 export type Block = {
     body: Statement[];
-};
-
-export type Context = null | {
-    node: Node;
-    scope: Scope;
 };
 
 export type FunctionNode = FunctionExpression | FunctionDeclaration | ObjectMethod | ArrowFunctionExpression;
