@@ -1,13 +1,13 @@
-import { formatStack } from "./globals";
-import { Context, Value } from "./types";
+import { formatStack } from './globals';
+import { Context, Value } from './types';
 
 export class RuntimeError extends Error {
     constructor(
-        public thrownValue: Value,
-        context: Context
+        context: Context,
+        public thrownValue: Value
     ) {
         super();
-        this.message = `${tryGetThrownValue(thrownValue, context)}${formatStack(context)}`;
+        this.message = `${tryGetThrownValue(context, thrownValue)}${formatStack(context)}`;
     }
 
     toString() {
@@ -15,13 +15,13 @@ export class RuntimeError extends Error {
     }
 }
 
-function tryGetThrownValue(thrownValue: Value, context: Context): string | null {
+function tryGetThrownValue(context: Context, thrownValue: Value): string | null {
     if (context === null) {
         return null;
     }
     
     try {
-        return context.scope.engine.toString(thrownValue, context);
+        return context.scope.engine.toString(context, thrownValue);
     } catch {
         return null;
     }

@@ -1,18 +1,10 @@
 import { ArrayExpression, ArrowFunctionExpression, AssignmentExpression, BinaryExpression, Block, BlockStatement, BooleanLiteral, CallExpression, ConditionalExpression, Expression, ExpressionStatement, ForInStatement, ForStatement, FunctionDeclaration, FunctionExpression, Identifier, IfStatement, JSXNamespacedName, LogicalExpression, LVal, MemberExpression, NewExpression, Node, NumericLiteral, ObjectExpression, ObjectMethod, ObjectProperty, PatternLike, RegExpLiteral, ReturnStatement, SequenceExpression, SpreadElement, Statement, StringLiteral, ThisExpression, ThrowStatement, traverse, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, WhileStatement } from '@babel/types';
 import { Engine } from './engine';
 import { booleanValue, nullValue, numberValue, ParsedScript, stringValue, undefinedValue } from './factories';
+import { isFunctionNode } from './globals';
 import { NotImplementedError } from './notImplementedError';
 import { RuntimeError } from './runtimeError';
 import { BooleanValue, CallStackEntry, Context, FunctionNode, NumberValue, ObjectPropertyDescriptor, ObjectValue, StringValue, Value } from './types';
-
-function isFunctionNode(node: Node): boolean {
-    const type = node.type;
-
-    return type === 'FunctionDeclaration' ||
-        type === 'FunctionExpression' ||
-        type === 'ObjectMethod' ||
-        type === 'ArrowFunctionExpression';
-}
 
 export class Scope {
     constructor(
@@ -106,7 +98,7 @@ export class Scope {
             case 'TryStatement':
                 return this.evaluateTryStatement(statement);
             default:
-                throw new NotImplementedError('not supported statement type ' + statement.type, this.createContext(statement));
+                throw new NotImplementedError(this.createContext(statement), 'not supported statement type ' + statement.type);
         }
     }
 
@@ -156,7 +148,7 @@ export class Scope {
                 return this.evaluateThisExpression(expression);
         }
 
-        throw new NotImplementedError('unsupported expression ' + expression.type, this.createContext(expression));
+        throw new NotImplementedError(this.createContext(expression), 'unsupported expression ' + expression.type);
     }
 
     evaluateVariableDeclaration(statement: VariableDeclaration): null {
@@ -169,7 +161,7 @@ export class Scope {
 
                     break;
                 default:
-                    throw new NotImplementedError('unsupported variable declaration type: ' + declaration.id.type, this.createContext(statement));
+                    throw new NotImplementedError(this.createContext(statement), 'unsupported variable declaration type: ' + declaration.id.type);
             }
         }
 
@@ -183,7 +175,7 @@ export class Scope {
                     this.engine.defineProperty(this.variables, declaration.id.name, undefinedValue);
                     break;
                 default:
-                    throw new NotImplementedError('unsupported variable declaration type: ' + declaration.id.type, this.createContext(statement));
+                    throw new NotImplementedError(this.createContext(statement), 'unsupported variable declaration type: ' + declaration.id.type);
             }
         }
 
@@ -192,7 +184,7 @@ export class Scope {
 
     hoistFunctionDeclaration(statement: FunctionDeclaration): null {
         if (statement.id === null) {
-            throw new NotImplementedError('wrong function declaration', this.createContext(statement));
+            throw new NotImplementedError(this.createContext(statement), 'wrong function declaration');
         } else {
             this.engine.defineProperty(this.variables, statement.id.name, this.functionValue(statement, statement.id.name));
         }
@@ -207,7 +199,7 @@ export class Scope {
     }
 
     evaluateThrowStatement(statement: ThrowStatement): null {
-        throw new RuntimeError(this.evaluateExpression(statement.argument), this.createContext(statement));
+        throw new RuntimeError(this.createContext(statement), this.evaluateExpression(statement.argument));
     }
 
     evaluateReturnStatement(statement: ReturnStatement): Value {
@@ -291,13 +283,13 @@ export class Scope {
         const childScope = this.createChildScope(this.script, this.callStackEntry, this.thisValue, this.engine.newObject());
 
         if (statement.left.type !== 'VariableDeclaration') {
-            throw new NotImplementedError('unsupported type of variable declaration in for of: ' + statement.left.type, this.createContext(statement));
+            throw new NotImplementedError(this.createContext(statement), 'unsupported type of variable declaration in for of: ' + statement.left.type);
         }
 
         const iterated = this.evaluateExpression(statement.right);
 
         if (iterated.type !== 'object') {
-            throw new NotImplementedError('unsupported type of iterated object in for of: ' + iterated.type, this.createContext(statement));
+            throw new NotImplementedError(this.createContext(statement), 'unsupported type of iterated object in for of: ' + iterated.type);
         }
 
         for (const p of iterated.ownProperties.entries()) {
@@ -353,20 +345,20 @@ export class Scope {
             const end = expression.callee.end;
 
             if (this.script && start !== null && end !== null) {
-                throw this.engine.newReferenceError(this.script.sourceCode.slice(start, end) + ' is not a function', this.createContext(expression));
+                throw this.engine.newReferenceError(this.createContext(expression), this.script.sourceCode.slice(start, end) + ' is not a function');
             } else {
-                throw this.engine.newReferenceError('cannot call non-function ' + callee.type, this.createContext(expression));
+                throw this.engine.newReferenceError(this.createContext(expression), 'cannot call non-function ' + callee.type);
             }
         }
 
-        return this.engine.executeFunction(callee, thisArg, args, this.createContext(expression));
+        return this.engine.executeFunction(this.createContext(expression), callee, thisArg, args);
     }
 
     evaluateNewExpression(expression: NewExpression): Value {
         const callee = this.evaluateExpression(expression.callee);
         const args = expression.arguments.map(arg => this.evaluateExpression(arg));
 
-        return this.engine.constructObject(callee, args, this.createContext(expression));
+        return this.engine.constructObject(this.createContext(expression), callee, args);
     }
 
     getThisArg(callee: Expression): Value {
@@ -387,11 +379,11 @@ export class Scope {
 
         switch (expression.operator) {
             case '+':
-                return numberValue(this.engine.toNumber(argument, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), argument));
             case '-':
-                return numberValue(-this.engine.toNumber(argument, this.createContext(expression)));
+                return numberValue(-this.engine.toNumber(this.createContext(expression), argument));
             case '~':
-                return numberValue(~this.engine.toNumber(argument, this.createContext(expression)));
+                return numberValue(~this.engine.toNumber(this.createContext(expression), argument));
             case '!':
                 return booleanValue(!this.engine.toBoolean(argument));
             case 'typeof':
@@ -400,12 +392,12 @@ export class Scope {
                 return this.evaluateDeleteUnaryExpression(expression);
         }
 
-        throw new NotImplementedError('unsupported operator ' + expression.operator, this.createContext(expression));
+        throw new NotImplementedError(this.createContext(expression), 'unsupported operator ' + expression.operator);
     }
 
     evaluateDeleteUnaryExpression(expression: UnaryExpression): Value {
         if(expression.argument.type !== 'MemberExpression') {
-            throw new NotImplementedError('arhument of delete should be MemberExpression ' + expression.operator, this.createContext(expression));
+            throw new NotImplementedError(this.createContext(expression), 'argument of delete should be MemberExpression ' + expression.operator);
         }
 
         const member = expression.argument;
@@ -413,7 +405,7 @@ export class Scope {
         const object = this.evaluateExpression(member.object);
         
         if (object.type !== 'object') {
-            throw new NotImplementedError('member access is unsupported for ' + object.type, this.createContext(expression));
+            throw new NotImplementedError(this.createContext(expression), 'member access is unsupported for ' + object.type);
         }
 
         const propertyName = this.evaluatePropertyName(member);
@@ -447,47 +439,47 @@ export class Scope {
         switch (expression.operator) {
             case '+':
                 if (left.type === 'string' || right.type === 'string') {
-                    return stringValue(this.engine.toString(left, this.createContext(expression)) + this.engine.toString(right, this.createContext(expression)));
+                    return stringValue(this.engine.toString(this.createContext(expression), left) + this.engine.toString(this.createContext(expression), right));
                 } else {
-                    return numberValue(this.engine.toNumber(left, this.createContext(expression)) + this.engine.toNumber(right, this.createContext(expression)));
+                    return numberValue(this.engine.toNumber(this.createContext(expression), left) + this.engine.toNumber(this.createContext(expression), right));
                 }
             case '-':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) - this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) - this.engine.toNumber(this.createContext(expression), right));
             case '*':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) * this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) * this.engine.toNumber(this.createContext(expression), right));
             case '**':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) ** this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) ** this.engine.toNumber(this.createContext(expression), right));
             case '/':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) / this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) / this.engine.toNumber(this.createContext(expression), right));
             case '%':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) % this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) % this.engine.toNumber(this.createContext(expression), right));
             case '&':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) & this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) & this.engine.toNumber(this.createContext(expression), right));
             case '|':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) | this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) | this.engine.toNumber(this.createContext(expression), right));
             case '^':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) ^ this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) ^ this.engine.toNumber(this.createContext(expression), right));
             case '<<':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) << this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) << this.engine.toNumber(this.createContext(expression), right));
             case '>>':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) >> this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) >> this.engine.toNumber(this.createContext(expression), right));
             case '>>>':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) >>> this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) >>> this.engine.toNumber(this.createContext(expression), right));
             case '===':
                 return booleanValue(this.strictEqual(left, right));
             case '!==':
                 return booleanValue(!this.strictEqual(left, right));
             case '>':
-                return booleanValue(this.engine.toNumber(left, this.createContext(expression)) > this.engine.toNumber(right, this.createContext(expression)));
+                return booleanValue(this.engine.toNumber(this.createContext(expression), left) > this.engine.toNumber(this.createContext(expression), right));
             case '<':
-                return booleanValue(this.engine.toNumber(left, this.createContext(expression)) < this.engine.toNumber(right, this.createContext(expression)));
+                return booleanValue(this.engine.toNumber(this.createContext(expression), left) < this.engine.toNumber(this.createContext(expression), right));
             case 'instanceof':
-                return booleanValue(this.engine.isInstanceOf(left, right, this.createContext(expression)));
+                return booleanValue(this.engine.isInstanceOf(this.createContext(expression), left, right));
             case 'in':
-                return booleanValue(this.isIn(left, right, this.createContext(expression)));
+                return booleanValue(this.isIn(this.createContext(expression), left, right));
         }
 
-        throw new NotImplementedError('unsupported operator ' + expression.operator, this.createContext(expression));
+        throw new NotImplementedError(this.createContext(expression), 'unsupported operator ' + expression.operator);
     }
 
     evaluateLogicalExpression(expression: LogicalExpression): Value {
@@ -501,19 +493,19 @@ export class Scope {
                 return this.engine.toBoolean(left) ? right() : left;
         }
 
-        throw new NotImplementedError('unsupported operator ' + expression.operator, this.createContext(expression));
+        throw new NotImplementedError(this.createContext(expression), 'unsupported operator ' + expression.operator);
     }
 
-    isIn(left: Value, right: Value, context: Context): boolean {
+    isIn(context: Context, left: Value, right: Value): boolean {
         if (left.type !== 'string') {
-            throw new NotImplementedError('unsupported left operand of in operator ' + left.type, context);
+            throw new NotImplementedError(context, 'unsupported left operand of in operator ' + left.type);
         }
 
         if (right.type !== 'object') {
-            throw new NotImplementedError('unsupported right operand of in operator ' + right.type, context);
+            throw new NotImplementedError(context, 'unsupported right operand of in operator ' + right.type);
         }
 
-        return this.engine.getPropertyDescriptor(right, left.value, context) !== null;
+        return this.engine.getPropertyDescriptor(context, right, left.value) !== null;
     }
 
     strictEqual(left: Value, right: Value): boolean {
@@ -580,7 +572,7 @@ export class Scope {
                     }
                     break;
                 default:
-                    throw new NotImplementedError('unsupported property type ' + property.type, this.createContext(expression));
+                    throw new NotImplementedError(this.createContext(expression), 'unsupported property type ' + property.type);
             }
         }
 
@@ -592,19 +584,19 @@ export class Scope {
             
         if (!property.computed) {
             if (key.type !== 'Identifier') {
-                throw new NotImplementedError('getters/setters are unsupported ' + key.type, this.createContext(key));
+                throw new NotImplementedError(this.createContext(key), 'getters/setters are unsupported ' + key.type);
             }
 
             return key.name;
         }
         
-        return this.engine.toString(this.evaluateExpression(key), this.createContext(property));
+        return this.engine.toString(this.createContext(property), this.evaluateExpression(key));
     }
 
     evaluateArrayExpression(expression: ArrayExpression): Value {
         const elements = expression.elements.map(value => value === null ? undefinedValue : this.evaluateExpression(value));
         
-        return this.engine.constructArray(elements, this.createContext(expression));
+        return this.engine.constructArray(this.createContext(expression), elements);
     }
 
     evaluateFunctionExpression(expression: FunctionExpression): Value {
@@ -620,12 +612,12 @@ export class Scope {
         const propertyName = this.evaluatePropertyName(expression);
 
         if (object.type === 'null' || object.type === 'undefined') {
-            throw this.engine.newTypeError(`Cannot read property '${propertyName}' of ${object.type}`, this.createContext(expression));
+            throw this.engine.newTypeError(this.createContext(expression), `Cannot read property '${propertyName}' of ${object.type}`);
         }
         
-        const convertedObject = this.engine.toObject(object, this.createContext(expression));
+        const convertedObject = this.engine.toObject(this.createContext(expression), object);
         
-        return this.engine.readProperty(convertedObject, propertyName, this.createContext(expression));
+        return this.engine.readProperty(this.createContext(expression), convertedObject, propertyName);
     }
 
     evaluateAssignmentExpression(expression: AssignmentExpression): Value {
@@ -642,7 +634,7 @@ export class Scope {
         }
 
         if (expression.left.type !== 'Identifier' && expression.left.type !== 'MemberExpression') {
-            throw new NotImplementedError('left part of assignment operator is invalid', this.createContext(expression));
+            throw new NotImplementedError(this.createContext(expression), 'left part of assignment operator is invalid');
         }
 
         const left = this.evaluateExpression(expression.left);
@@ -650,39 +642,39 @@ export class Scope {
         switch(expression.operator) {
             case '+=':
                 if (left.type === 'string' || right.type === 'string') {
-                    return stringValue(this.engine.toString(left, this.createContext(expression)) + this.engine.toString(right, this.createContext(expression)));
+                    return stringValue(this.engine.toString(this.createContext(expression), left) + this.engine.toString(this.createContext(expression), right));
                 } else {
-                    return numberValue(this.engine.toNumber(left, this.createContext(expression)) + this.engine.toNumber(right, this.createContext(expression)));
+                    return numberValue(this.engine.toNumber(this.createContext(expression), left) + this.engine.toNumber(this.createContext(expression), right));
                 }
             case '-=':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) - this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) - this.engine.toNumber(this.createContext(expression), right));
             case '*=':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) * this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) * this.engine.toNumber(this.createContext(expression), right));
             case '**=':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) ** this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) ** this.engine.toNumber(this.createContext(expression), right));
             case '/=':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) / this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) / this.engine.toNumber(this.createContext(expression), right));
             case '%=':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) % this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) % this.engine.toNumber(this.createContext(expression), right));
             case '&=':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) & this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) & this.engine.toNumber(this.createContext(expression), right));
             case '|=':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) | this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) | this.engine.toNumber(this.createContext(expression), right));
             case '^=':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) ^ this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) ^ this.engine.toNumber(this.createContext(expression), right));
             case '<<=':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) << this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) << this.engine.toNumber(this.createContext(expression), right));
             case '>>=':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) >> this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) >> this.engine.toNumber(this.createContext(expression), right));
             case '>>>=':
-                return numberValue(this.engine.toNumber(left, this.createContext(expression)) >>> this.engine.toNumber(right, this.createContext(expression)));
+                return numberValue(this.engine.toNumber(this.createContext(expression), left) >>> this.engine.toNumber(this.createContext(expression), right));
         }
         
-        throw new NotImplementedError('unsupported operator ' + expression.operator, this.createContext(expression));
+        throw new NotImplementedError(this.createContext(expression), 'unsupported operator ' + expression.operator);
     }
 
     evaluateUpdateExpression(expression: UpdateExpression): Value {
-        const value = this.engine.toNumber(this.evaluateExpression(expression.argument), this.createContext(expression));
+        const value = this.engine.toNumber(this.createContext(expression), this.evaluateExpression(expression.argument));
         const newValue = numberValue((expression.operator === '++' ? 1 : (-1)) + value);
         this.assignValue(newValue, expression.argument as any);
         return expression.prefix ? newValue : numberValue(value);
@@ -691,7 +683,7 @@ export class Scope {
     evaluateIdentifier(expression: Identifier): Value {
         const context = this.createContext(expression);
         
-        const result = this.getIdentifier(expression.name, context);
+        const result = this.getIdentifier(context, expression.name);
 
         if (result === null) {
             return undefinedValue;
@@ -699,21 +691,21 @@ export class Scope {
 
         const [containingScope, identifier] = result;
 
-        return this.engine.readPropertyDescriptorValue(containingScope.variables, identifier, context);
+        return this.engine.readPropertyDescriptorValue(context, containingScope.variables, identifier);
     }
 
-    getIdentifier(identifierName: string, context: Context): [Scope, ObjectPropertyDescriptor] | null {
+    getIdentifier(context: Context, identifierName: string): [Scope, ObjectPropertyDescriptor] | null {
         if (this.parent !== null) {
-            const variable = this.engine.getOwnPropertyDescriptor(this.variables, identifierName, context);
+            const variable = this.engine.getOwnPropertyDescriptor(context, this.variables, identifierName);
             
             if (variable !== null) {
                 return [this, variable];
             }
 
-            return this.parent.getIdentifier(identifierName, context);
+            return this.parent.getIdentifier(context, identifierName);
         }
         
-        const variable = this.engine.getPropertyDescriptor(this.variables, identifierName, context);
+        const variable = this.engine.getPropertyDescriptor(context, this.variables, identifierName);
             
         if (variable !== null) {
             return [this, variable];
@@ -723,18 +715,18 @@ export class Scope {
     }
 
     evaluateRegExpLiteral(expression: RegExpLiteral): Value {
-        return this.engine.constructObject(this.engine.RegExp.constructor, [
+        return this.engine.constructObject(this.createContext(expression), this.engine.RegExp.constructor, [
             stringValue(expression.pattern),
             stringValue(expression.flags)
-        ], this.createContext(expression));
+        ]);
     }
 
     assignIdentifier(value: Value, to: Identifier): void {
         if (this.variables.ownProperties.has(to.name)) {
-            this.engine.assignProperty(this.variables, to.name, value, this.createContext(to));
+            this.engine.assignProperty(this.createContext(to), this.variables, to.name, value);
         } else {
             if (this.parent === null) {
-                throw new NotImplementedError('cannot assign variable as it is not defined ' + to.name, this.createContext(to));
+                throw new NotImplementedError(this.createContext(to), 'cannot assign variable as it is not defined ' + to.name);
             }
 
             this.parent.assignIdentifier(value, to);
@@ -745,11 +737,11 @@ export class Scope {
         const object = this.evaluateExpression(to.object);
         
         if (object.type !== 'object') {
-            throw new NotImplementedError('member assignment is unsupported for ' + object.type, this.createContext(to));
+            throw new NotImplementedError(this.createContext(to), 'member assignment is unsupported for ' + object.type);
         }
 
         const propertyName = this.evaluatePropertyName(to);
-        this.engine.assignProperty(object, propertyName, value, this.createContext(to));
+        this.engine.assignProperty(this.createContext(to), object, propertyName, value);
     }
 
     assignValue(value: Value, to: LVal): void {
@@ -760,20 +752,20 @@ export class Scope {
                 return this.assignMember(value, to);
         }
 
-        throw new NotImplementedError('unsupported left value type ' + to.type, this.createContext(to));
+        throw new NotImplementedError(this.createContext(to), 'unsupported left value type ' + to.type);
     }
 
     functionValue(statement: FunctionNode, name: string | null = null) {
         const isConstructor = (statement.type !== 'ArrowFunctionExpression') && !statement.generator;
 
-        return this.engine.functionValue((thisArg, argValues, caller) => {
+        return this.engine.functionValue((callerContext, thisArg, argValues) => {
             if (statement.type === 'ArrowFunctionExpression' && statement.body.type !== 'BlockStatement') {
                 return this.evaluateExpression(statement.body);
             }
 
             const thisValue = statement.type === 'ArrowFunctionExpression' ? this.thisValue : thisArg;
             const childScope = this.createChildScope(this.script, {
-                caller,
+                caller: callerContext,
                 callee: {
                     node: statement,
                     scope: this
@@ -787,7 +779,7 @@ export class Scope {
             const result = childScope.evaluateStatements(body);
             
             if (result === 'break') {
-                throw new NotImplementedError('return should not be break', this.createContext(statement));
+                throw new NotImplementedError(this.createContext(statement), 'return should not be break');
             }
             
             return result || undefinedValue;
@@ -815,7 +807,7 @@ export class Scope {
                     this.engine.defineProperty(variables, parameter.name, argumentValue);
                     break;
                 default:
-                    throw new NotImplementedError('parameter type ' + parameter.type + ' is not supported', this.createContext(parameter));
+                    throw new NotImplementedError(this.createContext(parameter), 'parameter type ' + parameter.type + ' is not supported');
             }
 
             index++;

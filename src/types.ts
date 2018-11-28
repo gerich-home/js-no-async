@@ -1,5 +1,5 @@
-import { ArrowFunctionExpression, FunctionDeclaration, FunctionExpression, Node, ObjectMethod, Statement } from "@babel/types";
-import { Scope } from "./scope";
+import { ArrowFunctionExpression, FunctionDeclaration, FunctionExpression, Node, ObjectMethod, Statement } from '@babel/types';
+import { Scope } from './scope';
 
 export type Value = NumberValue | StringValue | BooleanValue | NullValue | UndefinedValue | ObjectValue;
 
@@ -60,15 +60,15 @@ export type InternalObjectFields = {
     [variableName: string]: any;
 };
 
-export type GeneralFunctionInvoke = (thisArg: Value, argValues: Value[], context: Context, newTarget: Value) => Value;
-export type ObjectMethodInvoke = (thisArg: ObjectValue, argValues: Value[], context: Context, newTarget: Value) => Value;
+export type GeneralFunctionInvoke = (context: Context, thisArg: Value, argValues: Value[], newTarget: Value) => Value;
+export type ObjectMethodInvoke = (context: Context, thisArg: ObjectValue, argValues: Value[], newTarget: Value) => Value;
 
 export type FunctionInternalFields = {
     invoke: GeneralFunctionInvoke;
     isConstructor: boolean;
 };
 
-export type GetOwnPropertyDescriptorMethod = (object: ObjectValue, propertyName: string, context: Context) => ObjectPropertyDescriptor | null;
+export type GetOwnPropertyDescriptorMethod = (context: Context, object: ObjectValue, propertyName: string) => ObjectPropertyDescriptor | null;
 
 export type HasGetPropertyDescriptor = {
     getOwnPropertyDescriptor: GetOwnPropertyDescriptorMethod;

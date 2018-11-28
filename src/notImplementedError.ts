@@ -1,10 +1,10 @@
-import { formatStack } from "./globals";
-import { Context } from "./types";
+import { formatStack } from './globals';
+import { Context } from './types';
 
 export class NotImplementedError extends Error {
     constructor(
-        details: string,
-        context: Context
+        context: Context,
+        details: string
     ) {
         super();
         this.message = `${details}${formatStack(context)}`;

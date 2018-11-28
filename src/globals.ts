@@ -1,7 +1,7 @@
-import { parse } from "@babel/parser";
-import { Identifier, SourceLocation } from "@babel/types";
-import { ParsedScript } from "./factories";
-import { Context } from "./types";
+import { parse } from '@babel/parser';
+import { Identifier, Node, SourceLocation } from '@babel/types';
+import { ParsedScript } from './factories';
+import { Context } from './types';
 
 export function formatStack(context: Context): string {
     if (context === null) {
@@ -75,4 +75,13 @@ export function parseScript(sourceCode: string, path: string): ParsedScript {
         sourceCode,
         path
     };
+}
+
+export function isFunctionNode(node: Node): boolean {
+    const type = node.type;
+
+    return type === 'FunctionDeclaration' ||
+        type === 'FunctionExpression' ||
+        type === 'ObjectMethod' ||
+        type === 'ArrowFunctionExpression';
 }
