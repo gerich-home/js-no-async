@@ -4,10 +4,6 @@ import { Context } from './context';
 import { ParsedScript } from './factories';
 
 export function formatStack(context: Context): string {
-    if (context === null) {
-        return '';
-    }
-
     if (context.scope.callStackEntry === null) {
         return formatStackLine(context);
     }
@@ -17,7 +13,7 @@ export function formatStack(context: Context): string {
     return formatStackLine(context) + formatStack(caller);
 }
 
-function formatStackLine(context: NonNullable<Context>): string {
+function formatStackLine(context: Context): string {
     if (context.node.loc === null) {
         return '';
     }
@@ -25,7 +21,7 @@ function formatStackLine(context: NonNullable<Context>): string {
     return `\n    at ${formatNodeLocation(context, context.node.loc)}`;
 }
 
-function formatNodeLocation(context: NonNullable<Context>, loc: SourceLocation) {
+function formatNodeLocation(context: Context, loc: SourceLocation) {
     const location = formatNodeScriptLocation(context, loc);
 
     const functionName = getCalledFunctionName(context);
@@ -33,7 +29,7 @@ function formatNodeLocation(context: NonNullable<Context>, loc: SourceLocation) 
     return functionName === null ? location : `${functionName} (${location})`;
 }
 
-function formatNodeScriptLocation(context: NonNullable<Context>, loc: SourceLocation) {
+function formatNodeScriptLocation(context: Context, loc: SourceLocation) {
     const start = loc.start;
     const lineCol = `${start.line}:${start.column}`;
 
@@ -44,7 +40,7 @@ function formatNodeScriptLocation(context: NonNullable<Context>, loc: SourceLoca
     return `${context.scope.script.path}:${lineCol}`;
 }
 
-function getCalledFunctionName(context: NonNullable<Context>): string | null {
+function getCalledFunctionName(context: Context): string | null {
     const callStackEntry = context.scope.callStackEntry;
 
     if (callStackEntry === null) {
